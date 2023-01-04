@@ -27,6 +27,9 @@ jobs:
             target/
           key: ${{ runner.os }}-code-checking-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: install required cargo packages
+        run: cargo install clippy-sarif sarif-fmt
+
       - name: run lint
         run: cargo fmt --check
 
@@ -34,7 +37,14 @@ jobs:
         run: cargo check --all-features --tests
 
       - name: run clippy
-        run: cargo clippy --all-targets --all-features --tests
+        run: cargo clippy --all-targets --all-features --tests --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
+        continue-on-error: true
+
+      - name: Upload analysis results to GitHub
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: rust-clippy-results.sarif
+          wait-for-processing: true
 
   testing:
     runs-on: ubuntu-latest
