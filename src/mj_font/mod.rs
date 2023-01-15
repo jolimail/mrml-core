@@ -7,14 +7,19 @@ mod print;
 
 pub const NAME: &str = "mj-font";
 
+use crate::prelude::hash::Map;
+
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "json", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintAttributes))]
 struct MJFontAttributes {
     name: String,
     href: String,
 }
 
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintComponent))]
+#[cfg_attr(feature = "print", mrml_print(tag = "NAME"))]
 pub struct MJFont {
     attributes: MJFontAttributes,
 }
