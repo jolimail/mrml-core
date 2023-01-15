@@ -5,8 +5,8 @@ use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote::quote;
 use syn::{
-    parse_macro_input, punctuated::Punctuated, token::Comma, Data, DataStruct, DeriveInput, Field,
-    Fields, FieldsNamed, Path, Type, TypePath,
+    parse_macro_input, punctuated::Punctuated, token::Comma, Data, DataEnum, DataStruct,
+    DeriveInput, Field, Fields, FieldsNamed, Path, Type, TypePath,
 };
 
 fn as_fields_named(input: &DataStruct) -> Option<&FieldsNamed> {
@@ -19,6 +19,14 @@ fn as_fields_named(input: &DataStruct) -> Option<&FieldsNamed> {
 
 fn as_data_struct(ast: &DeriveInput) -> Option<&DataStruct> {
     if let Data::Struct(inner) = &(ast.data) {
+        Some(inner)
+    } else {
+        None
+    }
+}
+
+fn as_data_enum(ast: &DeriveInput) -> Option<&DataEnum> {
+    if let Data::Enum(inner) = &(ast.data) {
         Some(inner)
     } else {
         None
@@ -172,57 +180,6 @@ fn impl_print(ast: &DeriveInput) -> proc_macro2::TokenStream {
         }
     };
 
-    // let printing = if let Some(children_field) = children_field {
-    //     match &children_field.ty {
-    //         Type::Path(TypePath { path, .. }) if path.is_ident("String") => {
-    //             quote! {
-    //                 if self.children.is_empty() {
-    //                     crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
-    //                 } else if pretty {
-    //                     crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
-    //                         + &self.children + "\n"
-    //                         + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
-    //                 } else {
-    //                     crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
-    //                         + &self.children
-    //                         + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
-    //                 }
-    //             }
-    //         }
-    //         _ => {
-    //             quote! {
-    //                 if self.children.is_empty() {
-    //                     crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
-    //                 } else {
-    //                     crate::prelude::print::open(
-    //                         #tag_name,
-    //                         #attrs,
-    //                         false,
-    //                         pretty,
-    //                         level,
-    //                         indent_size,
-    //                     ) + &self
-    //                         .children
-    //                         .iter()
-    //                         .map(|child| child.print(pretty, level + 1, indent_size))
-    //                         .collect::<String>()
-    //                         + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
-    //                 }
-    //             }
-    //         }
-    //     }
-    // } else {
-    //     if opts.close_empty.unwrap_or(true) {
-    //         quote! {
-    //             crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
-    //         }
-    //     } else {
-    //         quote! {
-    //             crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
-    //         }
-    //     }
-    // };
-
     quote! {
         impl crate::prelude::print::Print for #name {
             fn print(&self, pretty: bool, level: usize, indent_size: usize) -> String {
@@ -279,4 +236,33 @@ pub fn derive_attributes(input: TokenStream) -> TokenStream {
     };
 
     res.into()
+}
+
+#[proc_macro_derive(MrmlPrintChildren)]
+pub fn derive_children(input: TokenStream) -> TokenStream {
+    let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
+
+    let name = &ast.ident;
+    let fields = as_data_enum(&ast)
+        .expect("MrmlPrintChildren only works with enum.")
+        .variants
+        .iter()
+        .map(|v| {
+            let variant = &v.ident;
+            quote! {
+                #name::#variant(elt) => elt.print(pretty, level, indent_size),
+            }
+        })
+        .collect::<proc_macro2::TokenStream>();
+
+    quote! {
+        impl crate::prelude::print::Print for #name {
+            fn print(&self, pretty: bool, level: usize, indent_size: usize) -> String {
+                match self {
+                    #fields
+                }
+            }
+        }
+    }
+    .into()
 }
