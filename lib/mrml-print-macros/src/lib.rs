@@ -60,6 +60,13 @@ fn get_children_field(ast: &DeriveInput) -> Option<&Field> {
 struct Opts {
     tag: Option<String>,
     close_empty: Option<bool>,
+    indent_children: Option<bool>,
+}
+
+impl Opts {
+    fn indent_children(&self) -> bool {
+        self.indent_children.unwrap_or(true)
+    }
 }
 
 fn is_map_string(path: &Path) -> bool {
@@ -70,17 +77,8 @@ fn is_map_string(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-fn impl_print(ast: &DeriveInput) -> TokenStream {
-    let name = &ast.ident;
-    let opts = Opts::from_derive_input(&ast).expect("Wrong options");
-
-    let tag_name = opts.tag.unwrap_or_else(|| "NAME".into());
-    let tag_name = Ident::new(tag_name.as_str(), Span::call_site());
-
-    let attributes_field = get_attributes_field(&ast);
-    let children_field = get_children_field(&ast);
-
-    let attrs = if let Some(field) = attributes_field {
+fn print_attributes(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    if let Some(field) = get_attributes_field(ast) {
         match &field.ty {
             Type::Path(TypePath { path, .. }) if is_map_string(path) => {
                 quote! { Some(&self.attributes) }
@@ -91,70 +89,152 @@ fn impl_print(ast: &DeriveInput) -> TokenStream {
         }
     } else {
         quote! { None }
-    };
-    let printing = if let Some(children_field) = children_field {
-        match &children_field.ty {
-            Type::Path(TypePath { path, .. }) if path.is_ident("String") => {
-                quote! {
-                    if self.children.is_empty() {
-                        crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
-                    } else if pretty {
-                        crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
-                            + &self.children + "\n"
-                            + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
-                    } else {
-                        crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
-                            + &self.children
-                            + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
-                    }
+    }
+}
+
+#[derive(PartialEq, Eq)]
+enum ChildrenKind {
+    String { indent: bool },
+    List,
+    None,
+}
+
+fn get_children_kind(ast: &DeriveInput, opts: &Opts) -> ChildrenKind {
+    if let Some(field) = get_children_field(ast) {
+        match &field.ty {
+            Type::Path(TypePath { path, .. }) if path.is_ident("String") => ChildrenKind::String {
+                indent: opts.indent_children(),
+            },
+            _ => ChildrenKind::List,
+        }
+    } else {
+        ChildrenKind::None
+    }
+}
+
+fn impl_print(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    let name = &ast.ident;
+    let opts = Opts::from_derive_input(&ast).expect("Wrong options");
+
+    let tag_name = opts.tag.clone().unwrap_or_else(|| "NAME".into());
+    let tag_name = Ident::new(tag_name.as_str(), Span::call_site());
+
+    let attrs = print_attributes(ast);
+
+    let printing = match get_children_kind(ast, &opts) {
+        ChildrenKind::None => {
+            let close_empty = opts.close_empty.unwrap_or(true);
+            quote! {
+                crate::prelude::print::open(#tag_name, #attrs, #close_empty, pretty, level, indent_size)
+            }
+        }
+        ChildrenKind::String { indent: true } => {
+            quote! {
+                if self.children.is_empty() {
+                    crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+                } else {
+                    let mut res = crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size);
+                    res.push_str(&self.children);
+                    res.push_str(&crate::prelude::print::close(#tag_name, pretty, level, indent_size));
+                    res
                 }
             }
-            _ => {
-                quote! {
-                    if self.children.is_empty() {
-                        crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+        }
+        ChildrenKind::String { indent: false } => {
+            quote! {
+                if self.children.is_empty() {
+                    crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+                } else {
+                    let mut res = crate::prelude::print::open(#tag_name, #attrs, false, false, level, indent_size);
+                    res.push_str(&self.children);
+                    res.push_str(&crate::prelude::print::close(#tag_name, false, level, indent_size));
+                    if pretty {
+                        crate::prelude::print::indent(level, indent_size, res)
                     } else {
-                        crate::prelude::print::open(
-                            #tag_name,
-                            #attrs,
-                            false,
-                            pretty,
-                            level,
-                            indent_size,
-                        ) + &self
-                            .children
-                            .iter()
-                            .map(|child| child.print(pretty, level + 1, indent_size))
-                            .collect::<String>()
-                            + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
+                        res
                     }
                 }
             }
         }
-    } else {
-        if opts.close_empty.unwrap_or(true) {
+        ChildrenKind::List => {
             quote! {
-                crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
-            }
-        } else {
-            quote! {
-                crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
+                if self.children.is_empty() {
+                    crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+                } else {
+                    let mut res = crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size);
+                    for child in self.children.iter() {
+                        res.push_str(&child.print(pretty, level + 1, indent_size));
+                    }
+                    res.push_str(&crate::prelude::print::close(#tag_name, pretty, level, indent_size));
+                    res
+                }
             }
         }
     };
 
-    TokenStream::from(quote! {
+    // let printing = if let Some(children_field) = children_field {
+    //     match &children_field.ty {
+    //         Type::Path(TypePath { path, .. }) if path.is_ident("String") => {
+    //             quote! {
+    //                 if self.children.is_empty() {
+    //                     crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+    //                 } else if pretty {
+    //                     crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
+    //                         + &self.children + "\n"
+    //                         + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
+    //                 } else {
+    //                     crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
+    //                         + &self.children
+    //                         + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
+    //                 }
+    //             }
+    //         }
+    //         _ => {
+    //             quote! {
+    //                 if self.children.is_empty() {
+    //                     crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+    //                 } else {
+    //                     crate::prelude::print::open(
+    //                         #tag_name,
+    //                         #attrs,
+    //                         false,
+    //                         pretty,
+    //                         level,
+    //                         indent_size,
+    //                     ) + &self
+    //                         .children
+    //                         .iter()
+    //                         .map(|child| child.print(pretty, level + 1, indent_size))
+    //                         .collect::<String>()
+    //                         + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
+    //                 }
+    //             }
+    //         }
+    //     }
+    // } else {
+    //     if opts.close_empty.unwrap_or(true) {
+    //         quote! {
+    //             crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+    //         }
+    //     } else {
+    //         quote! {
+    //             crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
+    //         }
+    //     }
+    // };
+
+    quote! {
         impl crate::prelude::print::Print for #name {
             fn print(&self, pretty: bool, level: usize, indent_size: usize) -> String {
                 #printing
             }
         }
-    })
+    }
 }
 
-fn impl_display(ast: &DeriveInput) -> TokenStream {
+fn impl_display(ast: &DeriveInput) -> proc_macro2::TokenStream {
     let name = &ast.ident;
-    TokenStream::from(quote! {
+    quote! {
         impl std::fmt::Display for #name {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 use crate::prelude::print::Print;
@@ -162,14 +242,21 @@ fn impl_display(ast: &DeriveInput) -> TokenStream {
                 f.write_str(self.dense_print().as_str())
             }
         }
-    })
+    }
 }
 
 #[proc_macro_derive(MrmlPrintComponent, attributes(mrml_print))]
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 
-    TokenStream::from_iter([impl_print(&ast), impl_display(&ast)])
+    let print_impl = impl_print(&ast);
+    let display_impl = impl_display(&ast);
+
+    quote! {
+        #print_impl
+        #display_impl
+    }
+    .into()
 }
 
 #[proc_macro_derive(MrmlPrintAttributes)]
