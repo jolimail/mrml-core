@@ -92,8 +92,45 @@ fn impl_print(ast: &DeriveInput) -> TokenStream {
     } else {
         quote! { None }
     };
-    let printing = if let Some(_children_field) = children_field {
-        todo!()
+    let printing = if let Some(children_field) = children_field {
+        match &children_field.ty {
+            Type::Path(TypePath { path, .. }) if path.is_ident("String") => {
+                quote! {
+                    if self.children.is_empty() {
+                        crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+                    } else if pretty {
+                        crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
+                            + &self.children + "\n"
+                            + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
+                    } else {
+                        crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size)
+                            + &self.children
+                            + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
+                    }
+                }
+            }
+            _ => {
+                quote! {
+                    if self.children.is_empty() {
+                        crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+                    } else {
+                        crate::prelude::print::open(
+                            #tag_name,
+                            #attrs,
+                            false,
+                            pretty,
+                            level,
+                            indent_size,
+                        ) + &self
+                            .children
+                            .iter()
+                            .map(|child| child.print(pretty, level + 1, indent_size))
+                            .collect::<String>()
+                            + &crate::prelude::print::close(#tag_name, pretty, level, indent_size)
+                    }
+                }
+            }
+        }
     } else {
         if opts.close_empty.unwrap_or(true) {
             quote! {
@@ -144,8 +181,8 @@ pub fn derive_attributes(input: TokenStream) -> TokenStream {
 
     let res = quote! {
         impl #name {
-            fn as_map(&self) -> Map<String, String> {
-                let mut res = Map::new();
+            fn as_map(&self) -> crate::prelude::hash::Map<String, String> {
+                let mut res = crate::prelude::hash::Map::new();
                 #(
                     res.insert(stringify!(#fields).to_string(), self.#fields.to_string());
                 )*

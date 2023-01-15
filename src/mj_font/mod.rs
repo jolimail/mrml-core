@@ -7,8 +7,6 @@ mod print;
 
 pub const NAME: &str = "mj-font";
 
-use crate::prelude::hash::Map;
-
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "json", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintAttributes))]
