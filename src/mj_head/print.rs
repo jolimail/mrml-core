@@ -1,8 +1,3 @@
-use super::{MJHead, NAME};
-use crate::print_children;
-
-print_children!(MJHead, NAME);
-
 #[cfg(test)]
 mod tests {
     use crate::prelude::print::Print;
@@ -10,7 +5,7 @@ mod tests {
     #[test]
     fn empty() {
         let item = crate::mj_head::MJHead::default();
-        assert_eq!("<mj-head></mj-head>", item.dense_print());
+        assert_eq!("<mj-head />", item.dense_print());
     }
 
     #[test]

@@ -84,6 +84,22 @@ fn as_path(field: &Field) -> Option<&Path> {
     }
 }
 
+fn is_vec(path: &Path) -> bool {
+    path.segments
+        .first()
+        // TODO make sure that it's a Vec<T>
+        .map(|s| s.ident == "Vec")
+        .unwrap_or(false)
+}
+
+fn is_option(path: &Path) -> bool {
+    path.segments
+        .first()
+        // TODO make sure that it's a Option<String>
+        .map(|s| s.ident == "Option")
+        .unwrap_or(false)
+}
+
 fn is_option_string(path: &Path) -> bool {
     path.segments
         .first()
@@ -118,6 +134,7 @@ fn print_attributes(ast: &DeriveInput) -> proc_macro2::TokenStream {
 #[derive(PartialEq, Eq)]
 enum ChildrenKind {
     String { indent: bool },
+    Single,
     List,
     None,
 }
@@ -128,7 +145,8 @@ fn get_children_kind(ast: &DeriveInput, opts: &Opts) -> ChildrenKind {
             Type::Path(TypePath { path, .. }) if path.is_ident("String") => ChildrenKind::String {
                 indent: opts.indent_children(),
             },
-            _ => ChildrenKind::List,
+            Type::Path(TypePath { path, .. }) if is_vec(path) => ChildrenKind::List,
+            _ => ChildrenKind::Single,
         }
     } else {
         ChildrenKind::None
@@ -176,6 +194,19 @@ fn impl_print(ast: &DeriveInput) -> proc_macro2::TokenStream {
                     } else {
                         res
                     }
+                }
+            }
+        }
+        ChildrenKind::Single => {
+            quote! {
+                let content = self.children.print(pretty, level + 1, indent_size);
+                if content.is_empty() {
+                    crate::prelude::print::open(#tag_name, #attrs, true, pretty, level, indent_size)
+                } else {
+                    let mut res = crate::prelude::print::open(#tag_name, #attrs, false, pretty, level, indent_size);
+                    res.push_str(&content);
+                    res.push_str(&crate::prelude::print::close(#tag_name, pretty, level, indent_size));
+                    res
                 }
             }
         }
@@ -267,9 +298,18 @@ pub fn derive_attributes(input: TokenStream) -> TokenStream {
 pub fn derive_children(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 
+    if let Some(data_enum) = as_data_enum(&ast) {
+        derive_children_enum(&ast, data_enum).into()
+    } else if let Some(data_struct) = as_data_struct(&ast) {
+        derive_children_struct(&ast, data_struct).into()
+    } else {
+        panic!("MrmlPrintChildren only works with enums and structs.")
+    }
+}
+
+fn derive_children_enum(ast: &DeriveInput, data_enum: &DataEnum) -> proc_macro2::TokenStream {
     let name = &ast.ident;
-    let fields = as_data_enum(&ast)
-        .expect("MrmlPrintChildren only works with enum.")
+    let fields = data_enum
         .variants
         .iter()
         .map(|v| {
@@ -289,5 +329,34 @@ pub fn derive_children(input: TokenStream) -> TokenStream {
             }
         }
     }
-    .into()
+}
+
+fn derive_children_struct(ast: &DeriveInput, data_struct: &DataStruct) -> proc_macro2::TokenStream {
+    let name = &ast.ident;
+
+    let fields =
+        data_struct
+            .fields
+            .iter()
+            .filter_map(|f| match (&f.ident, as_path(&f).map(is_option)) {
+                (Some(ident), Some(true)) => Some(quote! {
+                    if let Some(ref value) = self.#ident {
+                        res.push_str(&value.print(pretty, level, indent_size));
+                    }
+                }),
+                (Some(ident), Some(false)) => Some(quote! {
+                    res.push_str(&self.#ident.print(pretty, level, indent_size));
+                }),
+                _ => None,
+            });
+
+    quote! {
+        impl crate::prelude::print::Print for #name {
+            fn print(&self, pretty: bool, level: usize, indent_size: usize) -> String {
+                let mut res = String::new();
+                #(#fields)*
+                res
+            }
+        }
+    }
 }
