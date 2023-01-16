@@ -44,7 +44,7 @@ fn get_attributes_field(ast: &DeriveInput) -> Option<&Field> {
     get_fields(ast).into_iter().find(|f| {
         f.ident
             .as_ref()
-            .map(|id| id.to_string() == "attributes")
+            .map(|id| *id == "attributes")
             .unwrap_or(false)
     })
 }
@@ -58,7 +58,7 @@ fn get_children_field(ast: &DeriveInput) -> Option<&Field> {
         .find(|f| {
             f.ident
                 .as_ref()
-                .map(|id| id.to_string() == "children")
+                .map(|id| *id == "children")
                 .unwrap_or(false)
         })
 }
@@ -155,7 +155,7 @@ fn get_children_kind(ast: &DeriveInput, opts: &Opts) -> ChildrenKind {
 
 fn impl_print(ast: &DeriveInput) -> proc_macro2::TokenStream {
     let name = &ast.ident;
-    let opts = Opts::from_derive_input(&ast).expect("Wrong options");
+    let opts = Opts::from_derive_input(ast).expect("Wrong options");
 
     let tag_name = opts.tag.clone().unwrap_or_else(|| "NAME".into());
     let tag_name = Ident::new(tag_name.as_str(), Span::call_site());
@@ -268,7 +268,7 @@ pub fn derive_attributes(input: TokenStream) -> TokenStream {
 
     let name = &ast.ident;
     let fields = get_fields(&ast).iter().filter_map(|f| {
-        match (&f.ident, as_path(&f).map(is_option_string)) {
+        match (&f.ident, as_path(f).map(is_option_string)) {
             (Some(ident), Some(true)) => Some(quote! {
                 if let Some(ref value) = self.#ident {
                     res.insert(stringify!(#ident).to_string(), value.to_string());
@@ -338,7 +338,7 @@ fn derive_children_struct(ast: &DeriveInput, data_struct: &DataStruct) -> proc_m
         data_struct
             .fields
             .iter()
-            .filter_map(|f| match (&f.ident, as_path(&f).map(is_option)) {
+            .filter_map(|f| match (&f.ident, as_path(f).map(is_option)) {
                 (Some(ident), Some(true)) => Some(quote! {
                     if let Some(ref value) = self.#ident {
                         res.push_str(&value.print(pretty, level, indent_size));
