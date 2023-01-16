@@ -4,7 +4,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
     parse_macro_input, punctuated::Punctuated, token::Comma, Data, DataStruct, DeriveInput, Field,
-    Fields, FieldsNamed, Ident, Type, TypePath,
+    Fields, FieldsNamed, Ident, Path, Type, TypePath,
 };
 
 // fn is_vec(path: &Path) -> bool {
@@ -14,6 +14,14 @@ use syn::{
 //         .map(|s| s.ident == "Vec")
 //         .unwrap_or(false)
 // }
+
+fn is_map(path: &Path) -> bool {
+    path.segments
+        .first()
+        // TODO make sure that it's a Vec<String, String>
+        .map(|s| s.ident == "Map")
+        .unwrap_or(false)
+}
 
 fn as_data_struct(ast: &DeriveInput) -> Option<&DataStruct> {
     if let Data::Struct(inner) = &(ast.data) {
@@ -64,6 +72,32 @@ fn get_children_kind(ast: &DeriveInput) -> ChildrenKind {
     }
 }
 
+fn get_attributes_field(ast: &DeriveInput) -> Option<&Field> {
+    get_fields(ast).into_iter().find(|f| {
+        f.ident
+            .as_ref()
+            .map(|id| *id == "attributes")
+            .unwrap_or(false)
+    })
+}
+
+fn get_attributes_kind(ast: &DeriveInput) -> AttributesKind {
+    if let Some(field) = get_attributes_field(ast) {
+        match &field.ty {
+            Type::Path(TypePath { path, .. }) if is_map(path) => AttributesKind::Map,
+            _ => AttributesKind::Struct,
+        }
+    } else {
+        AttributesKind::None
+    }
+}
+
+enum AttributesKind {
+    Map,
+    Struct,
+    None,
+}
+
 #[proc_macro_derive(MrmlParseComponent)]
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
@@ -71,6 +105,23 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let origin_ident = &ast.ident;
     let parser_name = format!("{origin_ident}Parser");
     let parser_ident = Ident::new(&parser_name, origin_ident.span());
+
+    let parse_attribute = match get_attributes_kind(&ast) {
+        AttributesKind::None => quote! {},
+        AttributesKind::Map => quote! {
+            fn parse_attribute<'a>(
+                &mut self,
+                name: xmlparser::StrSpan<'a>,
+                value: xmlparser::StrSpan<'a>,
+            ) -> Result<(), crate::prelude::parse::Error> {
+                self.element
+                    .attributes
+                    .insert(name.to_string(), value.to_string());
+                Ok(())
+            }
+        },
+        AttributesKind::Struct => quote! {},
+    };
 
     let parse_child_text = match get_children_kind(&ast) {
         ChildrenKind::None => quote! {},
@@ -104,6 +155,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
                 Ok(self.element)
             }
 
+            #parse_attribute
             #parse_child_text
         }
 
