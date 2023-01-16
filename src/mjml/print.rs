@@ -4,24 +4,30 @@ use crate::print_display;
 
 impl Print for MJML {
     fn print(&self, pretty: bool, level: usize, indent_size: usize) -> String {
-        print::open(
+        let mut res = print::open(
             super::NAME,
             Some(&self.attributes),
             false,
             pretty,
             level,
             indent_size,
-        ) + &self
-            .head()
-            .as_ref()
-            .map(|h| h.print(pretty, level + 1, indent_size))
-            .unwrap_or_default()
-            + &self
+        );
+        res.push_str(
+            &self
+                .head()
+                .as_ref()
+                .map(|h| h.print(pretty, level + 1, indent_size))
+                .unwrap_or_default(),
+        );
+        res.push_str(
+            &self
                 .body()
                 .as_ref()
                 .map(|b| b.print(pretty, level + 1, indent_size))
-                .unwrap_or_default()
-            + &print::close(super::NAME, pretty, level, indent_size)
+                .unwrap_or_default(),
+        );
+        res.push_str(&print::close(super::NAME, pretty, level, indent_size));
+        res
     }
 }
 

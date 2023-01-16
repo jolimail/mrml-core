@@ -77,6 +77,21 @@ impl Opts {
     }
 }
 
+fn as_path(field: &Field) -> Option<&Path> {
+    match &field.ty {
+        Type::Path(TypePath { path, .. }) => Some(path),
+        _ => None,
+    }
+}
+
+fn is_option_string(path: &Path) -> bool {
+    path.segments
+        .first()
+        // TODO make sure that it's a Option<String>
+        .map(|s| s.ident == "Option")
+        .unwrap_or(false)
+}
+
 fn is_map_string(path: &Path) -> bool {
     path.segments
         .first()
@@ -221,15 +236,25 @@ pub fn derive_attributes(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 
     let name = &ast.ident;
-    let fields = get_fields(&ast).iter().filter_map(|f| f.ident.as_ref());
+    let fields = get_fields(&ast).iter().filter_map(|f| {
+        match (&f.ident, as_path(&f).map(is_option_string)) {
+            (Some(ident), Some(true)) => Some(quote! {
+                if let Some(ref value) = self.#ident {
+                    res.insert(stringify!(#ident).to_string(), value.to_string());
+                }
+            }),
+            (Some(ident), Some(false)) => Some(quote! {
+                res.insert(stringify!(#ident).to_string(), self.#ident.to_string());
+            }),
+            _ => None,
+        }
+    });
 
     let res = quote! {
         impl #name {
             fn as_map(&self) -> crate::prelude::hash::Map<String, String> {
                 let mut res = crate::prelude::hash::Map::new();
-                #(
-                    res.insert(stringify!(#fields).to_string(), self.#fields.to_string());
-                )*
+                #(#fields)*
                 res
             }
         }
