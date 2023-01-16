@@ -18,7 +18,7 @@ travis-ci = { repository = "jdrouet/mrml", branch = "main" }
 [features]
 default = ["json", "parse", "print", "render"]
 json = ["serde", "serde_json"]
-parse = ["xmlparser"]
+parse = ["mrml-parse-macros", "xmlparser"]
 print = ["mrml-print-macros"]
 render = ["rand"]
 orderedmap = ["indexmap", "rustc-hash"]
