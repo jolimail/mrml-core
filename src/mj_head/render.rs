@@ -128,9 +128,7 @@ impl<'e, 'h> MJHeadRender<'e, 'h> {
     }
 
     fn render_font_link(&self, href: &str) -> String {
-        format!(
-            "<link href=\"{href}\" rel=\"stylesheet\" type=\"text/css\">"
-        )
+        format!("<link href=\"{href}\" rel=\"stylesheet\" type=\"text/css\">")
     }
 
     fn render_font_families(&self) -> String {
@@ -250,9 +248,7 @@ impl<'e, 'h> MJHeadRender<'e, 'h> {
                 format!("<style type=\"text/css\">{buf}</style>")
             }
         };
-        format!("{header_styles}\n{head_styles}")
-            .trim()
-            .to_string()
+        format!("{header_styles}\n{head_styles}").trim().to_string()
     }
 
     fn render_raw(&self, opts: &Options) -> Result<String, Error> {
