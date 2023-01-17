@@ -58,15 +58,15 @@ fn create_builder(ast: &DeriveInput) -> proc_macro2::TokenStream {
     let builder_name = format!("{ident}Builder");
     let builder_ident = Ident::new(&builder_name, ident.span());
 
-    let struct_fields = get_fields(&ast)
+    let struct_fields = get_fields(ast)
         .iter()
         .filter_map(create_builder_struct_field);
 
-    let build_fields = get_fields(&ast)
+    let build_fields = get_fields(ast)
         .iter()
         .filter_map(create_builder_build_field);
 
-    let insert_fields = get_fields(&ast)
+    let insert_fields = get_fields(ast)
         .iter()
         .filter_map(create_builder_insert_field);
 

@@ -17,13 +17,13 @@ fn get_vec_type(path: &Path) -> Type {
     let res = if let PathArguments::AngleBracketed(arg) = res {
         arg
     } else {
-        panic!("expected path arguments of kind angle bracketed {:?}", res);
+        panic!("expected path arguments of kind angle bracketed {res:?}");
     };
     let res = res.args.first().unwrap();
     let res = if let GenericArgument::Type(ty) = res {
         ty
     } else {
-        panic!("expected generic argument of kind Type {:?}", res);
+        panic!("expected generic argument of kind Type {res:?}");
     };
     res.to_owned()
 }

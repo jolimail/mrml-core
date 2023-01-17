@@ -4,7 +4,7 @@ use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Ident};
 
 fn create_attribute(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_attributes_kind(&ast) {
+    match get_attributes_kind(ast) {
         AttributesKind::None => quote! {},
         AttributesKind::Map => quote! {
             attributes: Map<String, String>,
@@ -19,7 +19,7 @@ fn create_attribute(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn create_attribute_new(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_attributes_kind(&ast) {
+    match get_attributes_kind(ast) {
         AttributesKind::None => quote! {},
         AttributesKind::Map => quote! {
             attributes: Map::default(),
@@ -31,7 +31,7 @@ fn create_attribute_new(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn create_attribute_build(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_attributes_kind(&ast) {
+    match get_attributes_kind(ast) {
         AttributesKind::None => quote! {},
         AttributesKind::Map => quote! {
             attributes: self.attributes,
@@ -43,7 +43,7 @@ fn create_attribute_build(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn create_parse_attribute(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_attributes_kind(&ast) {
+    match get_attributes_kind(ast) {
         AttributesKind::None => quote! {},
         AttributesKind::Map => quote! {
             fn parse_attribute<'a>(
@@ -68,7 +68,7 @@ fn create_parse_attribute(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn create_children(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_children_kind(&ast) {
+    match get_children_kind(ast) {
         ChildrenKind::None => quote! {},
         ChildrenKind::List(ty) => quote! {
             children: Vec<#ty>,
@@ -80,7 +80,7 @@ fn create_children(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn create_children_new(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_children_kind(&ast) {
+    match get_children_kind(ast) {
         ChildrenKind::None => quote! {},
         _ => quote! {
             children: Default::default(),
@@ -89,7 +89,7 @@ fn create_children_new(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn create_children_build(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_children_kind(&ast) {
+    match get_children_kind(ast) {
         ChildrenKind::None => quote! {},
         _ => quote! {
             children: self.children,
@@ -98,7 +98,7 @@ fn create_children_build(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn create_parse_child_comment(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_children_kind(&ast) {
+    match get_children_kind(ast) {
         ChildrenKind::None => quote! {},
         ChildrenKind::String => quote! {},
         ChildrenKind::List(_) => quote! {
@@ -112,7 +112,7 @@ fn create_parse_child_comment(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn create_parse_child_text(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_children_kind(&ast) {
+    match get_children_kind(ast) {
         ChildrenKind::None => quote! {},
         ChildrenKind::String => quote! {
             fn parse_child_text(&mut self, value: xmlparser::StrSpan) -> Result<(), crate::prelude::parse::Error> {
@@ -130,7 +130,7 @@ fn create_parse_child_text(ast: &DeriveInput) -> proc_macro2::TokenStream {
 }
 
 fn create_parse_child_element(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    match get_children_kind(&ast) {
+    match get_children_kind(ast) {
         ChildrenKind::None => quote! {},
         ChildrenKind::String => quote! {},
         ChildrenKind::List(ty) => quote! {
