@@ -16,7 +16,7 @@ use std::rc::Rc;
 #[cfg(feature = "parse")]
 use xmlparser::{StrSpan, Tokenizer};
 
-#[derive(Debug)]
+#[derive(Debug, mrml_macros::MrmlChildren)]
 #[cfg_attr(feature = "json", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "json", serde(untagged))]
 #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintChildren))]

@@ -366,6 +366,7 @@ version = "1.2.11"
 dependencies = [
  "criterion",
  "indexmap",
+ "mrml-macros",
  "mrml-parse-macros",
  "mrml-print-macros",
  "rand",
@@ -373,6 +374,16 @@ dependencies = [
  "serde",
  "serde_json",
  "xmlparser",
+]
+
+[[package]]
+name = "mrml-macros"
+version = "0.1.0"
+dependencies = [
+ "Inflector",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

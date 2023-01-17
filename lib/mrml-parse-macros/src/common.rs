@@ -1,7 +1,7 @@
 use proc_macro2::Span;
 use syn::{
-    punctuated::Punctuated, token::Comma, Data, DataEnum, DataStruct, DeriveInput, Field, Fields,
-    FieldsNamed, FieldsUnnamed, GenericArgument, Path, PathArguments, Type, TypePath, Variant,
+    punctuated::Punctuated, token::Comma, Data, DataStruct, DeriveInput, Field, Fields,
+    FieldsNamed, GenericArgument, Path, PathArguments, Type, TypePath,
 };
 
 pub fn is_vec(path: &Path) -> bool {
@@ -44,14 +44,6 @@ pub fn is_option(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-pub fn as_data_enum(ast: &DeriveInput) -> Option<&DataEnum> {
-    if let Data::Enum(inner) = &(ast.data) {
-        Some(inner)
-    } else {
-        None
-    }
-}
-
 pub fn as_data_struct(ast: &DeriveInput) -> Option<&DataStruct> {
     if let Data::Struct(inner) = &(ast.data) {
         Some(inner)
@@ -82,14 +74,6 @@ pub fn get_children_field(ast: &DeriveInput) -> Option<&Field> {
             .map(|id| *id == "children")
             .unwrap_or(false)
     })
-}
-
-pub fn get_variant_single_field(variant: &Variant) -> Option<&Field> {
-    if let Fields::Unnamed(FieldsUnnamed { unnamed, .. }) = &variant.fields {
-        Some(unnamed.first().unwrap())
-    } else {
-        None
-    }
 }
 
 pub enum ChildrenKind {
