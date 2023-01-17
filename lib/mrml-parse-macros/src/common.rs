@@ -1,16 +1,32 @@
 use proc_macro2::Span;
 use syn::{
     punctuated::Punctuated, token::Comma, Data, DataStruct, DeriveInput, Field, Fields,
-    FieldsNamed, Path, Type, TypePath,
+    FieldsNamed, GenericArgument, Path, PathArguments, Type, TypePath,
 };
 
-// pub fn is_vec(path: &Path) -> bool {
-//     path.segments
-//         .first()
-//         // TODO make sure that it's a Vec<T>
-//         .map(|s| s.ident == "Vec")
-//         .unwrap_or(false)
-// }
+pub fn is_vec(path: &Path) -> bool {
+    path.segments
+        .first()
+        // TODO make sure that it's a Vec<T>
+        .map(|s| s.ident == "Vec")
+        .unwrap_or(false)
+}
+
+fn get_vec_type(path: &Path) -> Type {
+    let res = &path.segments.first().unwrap().arguments;
+    let res = if let PathArguments::AngleBracketed(arg) = res {
+        arg
+    } else {
+        panic!("expected path arguments of kind angle bracketed {:?}", res);
+    };
+    let res = res.args.first().unwrap();
+    let res = if let GenericArgument::Type(ty) = res {
+        ty
+    } else {
+        panic!("expected generic argument of kind Type {:?}", res);
+    };
+    res.to_owned()
+}
 
 pub fn is_map(path: &Path) -> bool {
     path.segments
@@ -62,7 +78,7 @@ pub fn get_children_field(ast: &DeriveInput) -> Option<&Field> {
 
 pub enum ChildrenKind {
     String,
-    List,
+    List(Type),
     None,
 }
 
@@ -70,7 +86,10 @@ pub fn get_children_kind(ast: &DeriveInput) -> ChildrenKind {
     if let Some(field) = get_children_field(ast) {
         match &field.ty {
             Type::Path(TypePath { path, .. }) if path.is_ident("String") => ChildrenKind::String,
-            _ => ChildrenKind::List,
+            Type::Path(TypePath { path, .. }) if is_vec(path) => {
+                ChildrenKind::List(get_vec_type(path))
+            }
+            _ => panic!("Incompatible type for children field {:?}", field.ident),
         }
     } else {
         ChildrenKind::None

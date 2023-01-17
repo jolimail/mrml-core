@@ -70,7 +70,9 @@ fn create_parse_attribute(ast: &DeriveInput) -> proc_macro2::TokenStream {
 fn create_children(ast: &DeriveInput) -> proc_macro2::TokenStream {
     match get_children_kind(&ast) {
         ChildrenKind::None => quote! {},
-        ChildrenKind::List => quote! {},
+        ChildrenKind::List(ty) => quote! {
+            children: Vec<#ty>,
+        },
         ChildrenKind::String => quote! {
             children: String,
         },
@@ -95,6 +97,20 @@ fn create_children_build(ast: &DeriveInput) -> proc_macro2::TokenStream {
     }
 }
 
+fn create_parse_child_comment(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    match get_children_kind(&ast) {
+        ChildrenKind::None => quote! {},
+        ChildrenKind::String => quote! {},
+        ChildrenKind::List(_) => quote! {
+            fn parse_child_comment(&mut self, value: xmlparser::StrSpan) -> Result<(), crate::prelude::parse::Error> {
+                self.children
+                    .push(crate::comment::Comment::from(value.as_str()).into());
+                Ok(())
+            }
+        },
+    }
+}
+
 fn create_parse_child_text(ast: &DeriveInput) -> proc_macro2::TokenStream {
     match get_children_kind(&ast) {
         ChildrenKind::None => quote! {},
@@ -104,7 +120,30 @@ fn create_parse_child_text(ast: &DeriveInput) -> proc_macro2::TokenStream {
                 Ok(())
             }
         },
-        ChildrenKind::List => quote! {},
+        ChildrenKind::List(_) => quote! {
+            fn parse_child_text(&mut self, value: xmlparser::StrSpan) -> Result<(), crate::prelude::parse::Error> {
+                self.children.push(crate::text::Text::from(value.as_str()).into());
+                Ok(())
+            }
+        },
+    }
+}
+
+fn create_parse_child_element(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    match get_children_kind(&ast) {
+        ChildrenKind::None => quote! {},
+        ChildrenKind::String => quote! {},
+        ChildrenKind::List(ty) => quote! {
+            fn parse_child_element<'a>(
+                &mut self,
+                tag: xmlparser::StrSpan<'a>,
+                tokenizer: &mut xmlparser::Tokenizer<'a>,
+            ) -> Result<(), crate::prelude::parse::Error> {
+                use crate::prelude::parse::Parsable;
+                self.children.push(<#ty>::parse(tag, tokenizer)?);
+                Ok(())
+            }
+        },
     }
 }
 
@@ -123,6 +162,8 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let children = create_children(&ast);
     let children_build = create_children_build(&ast);
     let children_new = create_children_new(&ast);
+    let parse_child_comment = create_parse_child_comment(&ast);
+    let parse_child_element = create_parse_child_element(&ast);
     let parse_child_text = create_parse_child_text(&ast);
 
     quote! {
@@ -152,6 +193,8 @@ pub fn derive(input: TokenStream) -> TokenStream {
             }
 
             #parse_attribute
+            #parse_child_comment
+            #parse_child_element
             #parse_child_text
         }
 
