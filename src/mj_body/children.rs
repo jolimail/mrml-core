@@ -51,10 +51,10 @@ pub enum MJBodyChild {
     Text(Text),
 }
 
-#[cfg(any(feature = "render", feature = "print"))]
-macro_rules! inner {
-    ($elt:ident) => {
-        match $elt {
+impl MJBodyChild {
+    #[cfg(feature = "render")]
+    pub fn as_renderable<'r, 'e: 'r, 'h: 'r>(&'e self) -> &'e (dyn Renderable<'r, 'e, 'h> + 'e) {
+        match self {
             Self::Comment(elt) => elt,
             Self::MJAccordion(elt) => elt,
             Self::MJButton(elt) => elt,
@@ -75,13 +75,6 @@ macro_rules! inner {
             Self::Node(elt) => elt,
             Self::Text(elt) => elt,
         }
-    };
-}
-
-impl MJBodyChild {
-    #[cfg(feature = "render")]
-    pub fn as_renderable<'r, 'e: 'r, 'h: 'r>(&'e self) -> &'e (dyn Renderable<'r, 'e, 'h> + 'e) {
-        inner!(self)
     }
 }
 

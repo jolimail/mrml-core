@@ -17,6 +17,6 @@ pub const NAME: &str = "mj-button";
 #[cfg_attr(feature = "print", mrml_print(tag = "NAME"))]
 #[cfg_attr(feature = "parse", derive(mrml_parse_macros::MrmlParseComponent))]
 pub struct MJButton {
-    attributes: Map<String, String>,
-    children: Vec<MJBodyChild>,
+    pub attributes: Map<String, String>,
+    pub children: Vec<MJBodyChild>,
 }
