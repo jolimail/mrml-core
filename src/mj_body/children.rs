@@ -1,5 +1,4 @@
 use crate::comment::Comment;
-use crate::from_child;
 use crate::mj_accordion::MJAccordion;
 use crate::mj_button::MJButton;
 use crate::mj_carousel::MJCarousel;
@@ -29,6 +28,7 @@ use std::rc::Rc;
 #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "json", serde(untagged))]
 #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintChildren))]
+#[cfg_attr(feature = "parse", derive(mrml_parse_macros::MrmlParseChildren))]
 pub enum MJBodyChild {
     Comment(Comment),
     MJAccordion(MJAccordion),
@@ -50,25 +50,6 @@ pub enum MJBodyChild {
     Node(Node<MJBodyChild>),
     Text(Text),
 }
-
-from_child!(MJBodyChild, Comment);
-from_child!(MJBodyChild, MJAccordion);
-from_child!(MJBodyChild, MJButton);
-from_child!(MJBodyChild, MJCarousel);
-from_child!(MJBodyChild, MJColumn);
-from_child!(MJBodyChild, MJDivider);
-from_child!(MJBodyChild, MJGroup);
-from_child!(MJBodyChild, MJHero);
-from_child!(MJBodyChild, MJImage);
-from_child!(MJBodyChild, MJNavbar);
-from_child!(MJBodyChild, MJRaw);
-from_child!(MJBodyChild, MJSection);
-from_child!(MJBodyChild, MJSocial);
-from_child!(MJBodyChild, MJSpacer);
-from_child!(MJBodyChild, MJTable);
-from_child!(MJBodyChild, MJText);
-from_child!(MJBodyChild, MJWrapper);
-from_child!(MJBodyChild, Text);
 
 #[cfg(any(feature = "render", feature = "print"))]
 macro_rules! inner {
@@ -95,12 +76,6 @@ macro_rules! inner {
             Self::Text(elt) => elt,
         }
     };
-}
-
-impl From<Node<MJBodyChild>> for MJBodyChild {
-    fn from(value: Node<MJBodyChild>) -> Self {
-        Self::Node(value)
-    }
 }
 
 impl MJBodyChild {
