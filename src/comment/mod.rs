@@ -5,7 +5,11 @@ mod print;
 #[cfg(feature = "render")]
 mod render;
 
+const NAME: &str = "comment";
+
 #[derive(Debug, Default)]
+#[cfg_attr(feature = "json", derive(mrml_json_macros::MrmlJsonComponent))]
+#[cfg_attr(feature = "json", mrml_json(tag = "NAME"))]
 pub struct Comment {
     pub children: String,
 }
