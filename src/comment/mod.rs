@@ -5,6 +5,7 @@ mod print;
 #[cfg(feature = "render")]
 mod render;
 
+#[cfg(feature = "json")]
 const NAME: &str = "comment";
 
 #[derive(Debug, Default)]
