@@ -5,14 +5,36 @@ use syn::{parse_macro_input, DeriveInput};
 #[derive(FromDeriveInput)]
 #[darling(attributes(mrml_json), forward_attrs(allow, doc, cfg))]
 struct Opts {
-    tag: String,
+    tag: Option<String>,
+    tag_field: Option<String>,
 }
 
 fn create_serializer(ast: &DeriveInput, opts: &Opts) -> proc_macro2::TokenStream {
     let struct_ident = &ast.ident;
+    let struct_generic = common_macros::get_generics(ast);
 
-    let element_name = &opts.tag;
-    let element_ident = syn::Ident::new(element_name, struct_ident.span());
+    let serialize_impl = match struct_generic {
+        Some(gen) => quote! {
+            impl<#gen: serde::Serialize> serde::Serialize for #struct_ident<#gen>
+        },
+        None => quote! {
+            impl serde::Serialize for #struct_ident
+        },
+    };
+
+    let tag = if let Some(ref tag) = opts.tag {
+        let element_ident = syn::Ident::new(tag, struct_ident.span());
+        quote! {
+            map.serialize_entry("type", #element_ident)?;
+        }
+    } else if let Some(ref tag) = opts.tag_field {
+        let element_ident = syn::Ident::new(tag, struct_ident.span());
+        quote! {
+            map.serialize_entry("type", self.#element_ident.as_str())?;
+        }
+    } else {
+        panic!("the tag or tag_field option should be set");
+    };
 
     let mut fields: usize = 1;
 
@@ -43,13 +65,13 @@ fn create_serializer(ast: &DeriveInput, opts: &Opts) -> proc_macro2::TokenStream
     quote! {
         use serde::ser::SerializeMap;
 
-        impl serde::Serialize for #struct_ident {
+        #serialize_impl {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
                 S: serde::Serializer,
             {
                 let mut map = serializer.serialize_map(Some(#fields))?;
-                map.serialize_entry("type", #element_ident)?;
+                #tag
                 #attributes
                 #children
                 map.end()
@@ -58,14 +80,133 @@ fn create_serializer(ast: &DeriveInput, opts: &Opts) -> proc_macro2::TokenStream
     }
 }
 
+fn create_deserialize_visitor_struct(
+    visitor_ident: &syn::Ident,
+    generic: &Option<syn::Ident>,
+) -> proc_macro2::TokenStream {
+    match generic {
+        Some(gen) => quote! {
+            struct #visitor_ident<#gen> {
+                _marker: std::marker::PhantomData<#gen>,
+            }
+
+            impl<T> Default for #visitor_ident<#gen> {
+                fn default() -> Self {
+                    Self {
+                        _marker: std::marker::PhantomData,
+                    }
+                }
+            }
+        },
+        None => quote! {
+            #[derive(Default)]
+            struct #visitor_ident;
+        },
+    }
+}
+
+fn create_deserialize_visitor_impl(
+    visitor_ident: &syn::Ident,
+    generic: &Option<syn::Ident>,
+) -> proc_macro2::TokenStream {
+    match generic {
+        Some(gen) => quote! {
+            impl<'de, #gen: serde::Deserialize<'de>> serde::de::Visitor<'de> for #visitor_ident<#gen>
+        },
+        None => quote! {
+            impl<'de> serde::de::Visitor<'de> for #visitor_ident
+        },
+    }
+}
+
+fn create_deserialize_visitor_type_value(
+    struct_ident: &syn::Ident,
+    generic: &Option<syn::Ident>,
+) -> proc_macro2::TokenStream {
+    match generic {
+        Some(gen) => quote! {
+            type Value = #struct_ident<#gen>;
+        },
+        None => quote! {
+            type Value = #struct_ident;
+        },
+    }
+}
+
+fn create_deserialize_impl(
+    struct_ident: &syn::Ident,
+    visitor_ident: &syn::Ident,
+    generic: &Option<syn::Ident>,
+) -> proc_macro2::TokenStream {
+    match generic {
+        Some(gen) => quote! {
+            impl<'de, #gen: serde::Deserialize<'de>> serde::Deserialize<'de> for #struct_ident<#gen> {
+                fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+                where
+                    D: serde::Deserializer<'de>,
+                {
+                    deserializer.deserialize_map(#visitor_ident::<#gen>::default())
+                }
+            }
+        },
+        None => quote! {
+            impl<'de> serde::Deserialize<'de> for #struct_ident {
+                fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+                where
+                    D: serde::Deserializer<'de>,
+                {
+                    deserializer.deserialize_map(#visitor_ident::default())
+                }
+            }
+        },
+    }
+}
+
 fn create_deserialize(ast: &DeriveInput, opts: &Opts) -> proc_macro2::TokenStream {
     let struct_ident = &ast.ident;
-    let element_name = &opts.tag;
-    let element_ident = syn::Ident::new(element_name, struct_ident.span());
+    let struct_generic = common_macros::get_generics(ast);
     let visitor_ident = syn::Ident::new(&format!("{struct_ident}Visitor"), struct_ident.span());
+
+    let visitor_struct = create_deserialize_visitor_struct(&visitor_ident, &struct_generic);
+    let visitor_impl = create_deserialize_visitor_impl(&visitor_ident, &struct_generic);
+    let visitor_type_value = create_deserialize_visitor_type_value(struct_ident, &struct_generic);
+    let deserializer_impl = create_deserialize_impl(struct_ident, &visitor_ident, &struct_generic);
 
     let has_attributes = common_macros::get_attributes_field(ast).is_some();
     let has_children = common_macros::get_children_field(ast).is_some();
+
+    let set_tag = if let Some(ref tag) = opts.tag {
+        let element_ident = syn::Ident::new(tag, struct_ident.span());
+        quote! {
+            let value = access.next_value::<String>()?;
+            if value != #element_ident {
+                return Err(M::Error::custom(format!(
+                    "expected type to equal {}, found {}",
+                    #element_ident,
+                    value,
+                )));
+            }
+        }
+    } else if let Some(ref tag_field) = opts.tag_field {
+        let tag_field = syn::Ident::new(tag_field, struct_ident.span());
+        quote! {
+            result.#tag_field = access.next_value::<String>()?;
+        }
+    } else {
+        panic!("the tag or tag_field option should be set");
+    };
+
+    let tag_empty_check = match opts.tag_field {
+        Some(ref tag_field) => {
+            let tag_field = syn::Ident::new(tag_field, struct_ident.span());
+            quote! {
+                if result.#tag_field.is_empty() {
+                    return Err(M::Error::missing_field("type"));
+                }
+            }
+        }
+        None => quote! {},
+    };
 
     let set_attributes = if has_attributes {
         quote! {
@@ -113,31 +254,23 @@ fn create_deserialize(ast: &DeriveInput, opts: &Opts) -> proc_macro2::TokenStrea
 
         #fields
 
-        #[derive(Default)]
-        struct #visitor_ident;
+        #visitor_struct
 
-        impl<'de> serde::de::Visitor<'de> for #visitor_ident {
-            type Value = #struct_ident;
+        #visitor_impl {
+            #visitor_type_value
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 #formatter
             }
 
-            fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+            fn visit_map<M>(mut self, mut access: M) -> Result<Self::Value, M::Error>
             where
                 M: MapAccess<'de>,
             {
-                let mut result = <#struct_ident>::default();
+                let mut result = Self::Value::default();
                 while let Some(key) = access.next_key::<String>()? {
                     if key == "type" {
-                        let value = access.next_value::<String>()?;
-                        if value != #element_ident {
-                            return Err(M::Error::custom(format!(
-                                "expected type to equal {}, found {}",
-                                #element_ident,
-                                value,
-                            )));
-                        }
+                        #set_tag
                     }
                     #set_attributes
                     #set_children
@@ -145,18 +278,12 @@ fn create_deserialize(ast: &DeriveInput, opts: &Opts) -> proc_macro2::TokenStrea
                         return Err(M::Error::unknown_field(&key, &FIELDS));
                     }
                 }
+                #tag_empty_check
                 Ok(result)
             }
         }
 
-        impl<'de> serde::Deserialize<'de> for #struct_ident {
-            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                deserializer.deserialize_map(<#visitor_ident>::default())
-            }
-        }
+        #deserializer_impl
     }
 }
 
