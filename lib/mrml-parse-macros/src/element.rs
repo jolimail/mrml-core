@@ -9,6 +9,7 @@ use syn::{parse_macro_input, DeriveInput, Ident};
 struct Opts {
     child_comment: Option<bool>,
     child_text: Option<bool>,
+    child_element: Option<bool>,
 }
 
 impl Opts {
@@ -17,6 +18,9 @@ impl Opts {
     }
     fn child_text(&self) -> bool {
         self.child_text.unwrap_or(true)
+    }
+    fn child_element(&self) -> bool {
+        self.child_element.unwrap_or(true)
     }
 }
 
@@ -145,9 +149,9 @@ fn create_parse_child_text(ast: &DeriveInput, opts: &Opts) -> proc_macro2::Token
     }
 }
 
-fn create_parse_child_element(ast: &DeriveInput) -> proc_macro2::TokenStream {
+fn create_parse_child_element(ast: &DeriveInput, opts: &Opts) -> proc_macro2::TokenStream {
     match get_children_kind(ast) {
-        ChildrenKind::List(ty) => quote! {
+        ChildrenKind::List(ty) if opts.child_element() => quote! {
             fn parse_child_element<'a>(
                 &mut self,
                 tag: xmlparser::StrSpan<'a>,
@@ -179,7 +183,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let children_build = create_children_build(&ast);
     let children_new = create_children_new(&ast);
     let parse_child_comment = create_parse_child_comment(&ast, &opts);
-    let parse_child_element = create_parse_child_element(&ast);
+    let parse_child_element = create_parse_child_element(&ast, &opts);
     let parse_child_text = create_parse_child_text(&ast, &opts);
 
     quote! {
