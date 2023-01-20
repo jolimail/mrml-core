@@ -1,7 +1,24 @@
 use common_macros::{get_attributes_kind, get_children_kind, AttributesKind, ChildrenKind};
+use darling::FromDeriveInput;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Ident};
+
+#[derive(FromDeriveInput)]
+#[darling(attributes(mrml_parse), forward_attrs(allow, doc, cfg))]
+struct Opts {
+    child_comment: Option<bool>,
+    child_text: Option<bool>,
+}
+
+impl Opts {
+    fn child_comment(&self) -> bool {
+        self.child_comment.unwrap_or(true)
+    }
+    fn child_text(&self) -> bool {
+        self.child_text.unwrap_or(true)
+    }
+}
 
 fn create_attribute(ast: &DeriveInput) -> proc_macro2::TokenStream {
     match get_attributes_kind(ast) {
@@ -97,9 +114,9 @@ fn create_children_build(ast: &DeriveInput) -> proc_macro2::TokenStream {
     }
 }
 
-fn create_parse_child_comment(ast: &DeriveInput) -> proc_macro2::TokenStream {
+fn create_parse_child_comment(ast: &DeriveInput, opts: &Opts) -> proc_macro2::TokenStream {
     match get_children_kind(ast) {
-        ChildrenKind::List(_) => quote! {
+        ChildrenKind::List(_) if opts.child_comment() => quote! {
             fn parse_child_comment(&mut self, value: xmlparser::StrSpan) -> Result<(), crate::prelude::parse::Error> {
                 self.children
                     .push(crate::comment::Comment::from(value.as_str()).into());
@@ -110,15 +127,15 @@ fn create_parse_child_comment(ast: &DeriveInput) -> proc_macro2::TokenStream {
     }
 }
 
-fn create_parse_child_text(ast: &DeriveInput) -> proc_macro2::TokenStream {
+fn create_parse_child_text(ast: &DeriveInput, opts: &Opts) -> proc_macro2::TokenStream {
     match get_children_kind(ast) {
-        ChildrenKind::String => quote! {
+        ChildrenKind::String if opts.child_text() => quote! {
             fn parse_child_text(&mut self, value: xmlparser::StrSpan) -> Result<(), crate::prelude::parse::Error> {
                 self.children = value.to_string();
                 Ok(())
             }
         },
-        ChildrenKind::List(_) => quote! {
+        ChildrenKind::List(_) if opts.child_text() => quote! {
             fn parse_child_text(&mut self, value: xmlparser::StrSpan) -> Result<(), crate::prelude::parse::Error> {
                 self.children.push(crate::text::Text::from(value.as_str()).into());
                 Ok(())
@@ -147,6 +164,7 @@ fn create_parse_child_element(ast: &DeriveInput) -> proc_macro2::TokenStream {
 
 pub fn derive(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
+    let opts = Opts::from_derive_input(&ast).expect("Wrong options");
 
     let origin_ident = &ast.ident;
     let parser_name = format!("{origin_ident}Parser");
@@ -160,9 +178,9 @@ pub fn derive(input: TokenStream) -> TokenStream {
     let children = create_children(&ast);
     let children_build = create_children_build(&ast);
     let children_new = create_children_new(&ast);
-    let parse_child_comment = create_parse_child_comment(&ast);
+    let parse_child_comment = create_parse_child_comment(&ast, &opts);
     let parse_child_element = create_parse_child_element(&ast);
-    let parse_child_text = create_parse_child_text(&ast);
+    let parse_child_text = create_parse_child_text(&ast, &opts);
 
     quote! {
         #[derive(Debug)]
