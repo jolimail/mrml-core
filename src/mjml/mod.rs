@@ -1,6 +1,7 @@
+#![allow(dead_code)]
+
 use crate::mj_body::MjBody;
 use crate::mj_head::MjHead;
-use crate::prelude::hash::Map;
 
 #[cfg(feature = "json")]
 mod json;
@@ -12,6 +13,19 @@ mod print;
 mod render;
 
 pub const NAME: &str = "mjml";
+
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "json", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintAttributes))]
+#[cfg_attr(feature = "parse", derive(mrml_parse_macros::MrmlParseAttributes))]
+pub struct MjmlAttributes {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub owa: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dir: Option<String>,
+}
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintChildren))]
@@ -26,7 +40,7 @@ pub struct MjmlChildren {
 #[cfg_attr(feature = "json", derive(mrml_json_macros::MrmlJsonComponent))]
 #[cfg_attr(feature = "json", mrml_json(tag = "NAME"))]
 pub struct Mjml {
-    pub attributes: Map<String, String>,
+    pub attributes: MjmlAttributes,
     pub children: MjmlChildren,
 }
 

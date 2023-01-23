@@ -1,6 +1,5 @@
 use super::Mjml;
 use crate::mj_head::MjHead;
-use crate::prelude::hash::Map;
 use crate::prelude::render::{Error, Header, Options, Render, Renderable};
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
@@ -15,10 +14,6 @@ impl<'e, 'h> Render<'h> for MjmlRender<'e, 'h> {
         self.header.borrow()
     }
 
-    fn attributes(&self) -> Option<&Map<String, String>> {
-        Some(&self.element.attributes)
-    }
-
     fn render(&self, opts: &Options) -> Result<String, Error> {
         let body_content = if let Some(body) = self.element.body() {
             body.renderer(Rc::clone(&self.header)).render(opts)?
@@ -27,9 +22,9 @@ impl<'e, 'h> Render<'h> for MjmlRender<'e, 'h> {
         };
         let mut buf = String::from("<!doctype html>");
         buf.push_str("<html ");
-        if let Some(lang) = self.attribute("lang") {
+        if let Some(ref lang) = self.element.attributes.lang {
             buf.push_str("lang=\"");
-            buf.push_str(lang.as_str());
+            buf.push_str(lang);
             buf.push_str("\" ");
         }
         buf.push_str("xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:v=\"urn:schemas-microsoft-com:vml\" xmlns:o=\"urn:schemas-microsoft-com:office:office\">");
@@ -60,7 +55,7 @@ impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for Mjml {
 impl Mjml {
     pub fn render(&self, opts: &Options) -> Result<String, Error> {
         let mut header = Header::new(&self.children.head);
-        header.maybe_set_lang(self.attributes.get("lang").cloned());
+        header.maybe_set_lang(self.attributes.lang.clone());
         let header = Rc::new(RefCell::new(header));
         self.renderer(header).render(opts)
     }

@@ -1,10 +1,16 @@
-use super::MjmlChildren;
+use super::{MjmlAttributes, MjmlChildren};
 use crate::mj_body::MjBody;
 use crate::mj_head::MjHead;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
+
+impl MjmlAttributes {
+    pub fn is_empty(&self) -> bool {
+        self.owa.is_none() && self.lang.is_none() && self.dir.is_none()
+    }
+}
 
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(untagged)]

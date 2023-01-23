@@ -16,10 +16,9 @@ impl Parser for MjmlParser {
 
     fn parse_attribute<'a>(&mut self, name: StrSpan<'a>, value: StrSpan<'a>) -> Result<(), Error> {
         match name.as_str() {
-            "lang" | "owa" => self
-                .0
-                .attributes
-                .insert(name.to_string(), value.to_string()),
+            "dir" => self.0.attributes.dir = Some(value.to_string()),
+            "lang" => self.0.attributes.lang = Some(value.to_string()),
+            "owa" => self.0.attributes.owa = Some(value.to_string()),
             _ => return Err(Error::UnexpectedAttribute(name.start())),
         };
         Ok(())
@@ -63,7 +62,7 @@ mod tests {
 
     #[test]
     fn simple() {
-        let template = "<Mjml></Mjml>";
+        let template = "<mjml></mjml>";
         let elt = Mjml::parse(template).unwrap();
         assert!(elt.children.body.is_none());
         assert!(elt.children.head.is_none());
@@ -71,15 +70,15 @@ mod tests {
 
     #[test]
     fn with_lang() {
-        let template = "<Mjml lang=\"fr\"></Mjml>";
+        let template = "<mjml lang=\"fr\"></mjml>";
         let elt = Mjml::parse(template).unwrap();
-        assert_eq!(elt.attributes.get("lang"), Some(&"fr".to_string()));
+        assert_eq!(elt.attributes.lang.unwrap(), "fr");
     }
 
     #[test]
     fn with_owa() {
-        let template = "<Mjml owa=\"desktop\"></Mjml>";
+        let template = "<mjml owa=\"desktop\"></mjml>";
         let elt = Mjml::parse(template).unwrap();
-        assert_eq!(elt.attributes.get("owa"), Some(&"desktop".to_string()));
+        assert_eq!(elt.attributes.owa.unwrap(), "desktop");
     }
 }
