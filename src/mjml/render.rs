@@ -1,16 +1,16 @@
-use super::MJML;
+use super::Mjml;
 use crate::mj_head::MjHead;
 use crate::prelude::hash::Map;
 use crate::prelude::render::{Error, Header, Options, Render, Renderable};
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
-pub struct MJMLRender<'e, 'h> {
+pub struct MjmlRender<'e, 'h> {
     header: Rc<RefCell<Header<'h>>>,
-    element: &'e MJML,
+    element: &'e Mjml,
 }
 
-impl<'e, 'h> Render<'h> for MJMLRender<'e, 'h> {
+impl<'e, 'h> Render<'h> for MjmlRender<'e, 'h> {
     fn header(&self) -> Ref<Header<'h>> {
         self.header.borrow()
     }
@@ -48,16 +48,16 @@ impl<'e, 'h> Render<'h> for MJMLRender<'e, 'h> {
     }
 }
 
-impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MJML {
+impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for Mjml {
     fn renderer(&'e self, header: Rc<RefCell<Header<'h>>>) -> Box<dyn Render<'h> + 'r> {
-        Box::new(MJMLRender::<'e, 'h> {
+        Box::new(MjmlRender::<'e, 'h> {
             element: self,
             header,
         })
     }
 }
 
-impl MJML {
+impl Mjml {
     pub fn render(&self, opts: &Options) -> Result<String, Error> {
         let mut header = Header::new(&self.children.head);
         header.maybe_set_lang(self.attributes.get("lang").cloned());
@@ -81,7 +81,7 @@ impl MJML {
 #[cfg(test)]
 mod tests {
     use crate::helper::test::compare;
-    use crate::mjml::MJML;
+    use crate::mjml::Mjml;
     use crate::prelude::render::Options;
 
     #[test]
@@ -89,7 +89,7 @@ mod tests {
         let opts = Options::default();
         let template = include_str!("../../resources/compare/success/mjml.mjml");
         let expected = include_str!("../../resources/compare/success/mjml.html");
-        let root = MJML::parse(template).unwrap();
+        let root = Mjml::parse(template).unwrap();
         compare(expected, root.render(&opts).unwrap().as_str());
     }
 
@@ -97,7 +97,7 @@ mod tests {
     fn template_amario() {
         let opts = Options::default();
         let template = include_str!("../../resources/template/amario.mjml");
-        let root = MJML::parse(template).unwrap();
+        let root = Mjml::parse(template).unwrap();
         assert!(root.render(&opts).is_ok());
     }
 
@@ -106,7 +106,7 @@ mod tests {
         let opts = Options::default();
         let template = include_str!("../../resources/template/air-astana.mjml");
         let expected = include_str!("../../resources/template/air-astana.html");
-        let root = MJML::parse(template).unwrap();
+        let root = Mjml::parse(template).unwrap();
         compare(expected, root.render(&opts).unwrap().as_str());
     }
 
@@ -116,8 +116,8 @@ mod tests {
         let source = "<mjml><mj-body><mj-section><mj-column><mj-text>hi</mj-text></mj-column></mj-section></mj-body></mjml>";
         let options = Options::default();
 
-        let root_1 = MJML::parse(source).unwrap();
-        let root_2 = MJML::parse(source).unwrap();
+        let root_1 = Mjml::parse(source).unwrap();
+        let root_2 = Mjml::parse(source).unwrap();
 
         let output_1 = root_1.render(&options).unwrap();
         let output_2 = root_2.render(&options).unwrap();

@@ -1,14 +1,14 @@
-use super::MJML;
+use super::Mjml;
 use crate::mj_body::{MjBody, NAME as MJ_BODY};
 use crate::mj_head::{MjHead, NAME as MJ_HEAD};
 use crate::prelude::parse::{is_element_start, next_token, Error, Parsable, Parser};
 use xmlparser::{StrSpan, Tokenizer};
 
 #[derive(Debug, Default)]
-struct MJMLParser(MJML);
+struct MjmlParser(Mjml);
 
-impl Parser for MJMLParser {
-    type Output = MJML;
+impl Parser for MjmlParser {
+    type Output = Mjml;
 
     fn build(self) -> Result<Self::Output, Error> {
         Ok(self.0)
@@ -45,12 +45,12 @@ impl Parser for MJMLParser {
     }
 }
 
-impl MJML {
+impl Mjml {
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
         let mut tokenizer = Tokenizer::from(value.as_ref());
         let token = next_token(&mut tokenizer)?;
         if is_element_start(&token) {
-            MJMLParser::default().parse(&mut tokenizer)?.build()
+            MjmlParser::default().parse(&mut tokenizer)?.build()
         } else {
             Err(Error::InvalidFormat)
         }
@@ -63,23 +63,23 @@ mod tests {
 
     #[test]
     fn simple() {
-        let template = "<mjml></mjml>";
-        let elt = MJML::parse(template).unwrap();
+        let template = "<Mjml></Mjml>";
+        let elt = Mjml::parse(template).unwrap();
         assert!(elt.children.body.is_none());
         assert!(elt.children.head.is_none());
     }
 
     #[test]
     fn with_lang() {
-        let template = "<mjml lang=\"fr\"></mjml>";
-        let elt = MJML::parse(template).unwrap();
+        let template = "<Mjml lang=\"fr\"></Mjml>";
+        let elt = Mjml::parse(template).unwrap();
         assert_eq!(elt.attributes.get("lang"), Some(&"fr".to_string()));
     }
 
     #[test]
     fn with_owa() {
-        let template = "<mjml owa=\"desktop\"></mjml>";
-        let elt = MJML::parse(template).unwrap();
+        let template = "<Mjml owa=\"desktop\"></Mjml>";
+        let elt = Mjml::parse(template).unwrap();
         assert_eq!(elt.attributes.get("owa"), Some(&"desktop".to_string()));
     }
 }

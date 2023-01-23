@@ -15,7 +15,7 @@ pub const NAME: &str = "mjml";
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintChildren))]
-pub struct MJMLChildren {
+pub struct MjmlChildren {
     head: Option<MjHead>,
     body: Option<MjBody>,
 }
@@ -25,12 +25,12 @@ pub struct MJMLChildren {
 #[cfg_attr(feature = "print", mrml_print(tag = "NAME"))]
 #[cfg_attr(feature = "json", derive(mrml_json_macros::MrmlJsonComponent))]
 #[cfg_attr(feature = "json", mrml_json(tag = "NAME"))]
-pub struct MJML {
+pub struct Mjml {
     pub attributes: Map<String, String>,
-    pub children: MJMLChildren,
+    pub children: MjmlChildren,
 }
 
-impl MJML {
+impl Mjml {
     pub fn body(&self) -> Option<&MjBody> {
         self.children.body.as_ref()
     }
