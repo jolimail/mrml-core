@@ -19,11 +19,11 @@ pub const NAME: &str = "mjml";
 #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintAttributes))]
 #[cfg_attr(feature = "parse", derive(mrml_parse_macros::MrmlParseAttributes))]
 pub struct MjmlAttributes {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "json", serde(skip_serializing_if = "Option::is_none"))]
     pub owa: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "json", serde(skip_serializing_if = "Option::is_none"))]
     pub lang: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "json", serde(skip_serializing_if = "Option::is_none"))]
     pub dir: Option<String>,
 }
 

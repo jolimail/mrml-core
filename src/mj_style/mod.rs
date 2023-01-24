@@ -11,7 +11,7 @@ pub const NAME: &str = "mj-style";
 #[cfg_attr(feature = "json", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintAttributes))]
 pub struct MjStyleAttributes {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "json", serde(skip_serializing_if = "Option::is_none"))]
     pub inline: Option<String>,
 }
 
