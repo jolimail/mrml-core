@@ -32,29 +32,35 @@ use crate::mj_text::NAME as MJ_TEXT;
 use crate::mj_wrapper::MjWrapper;
 use crate::mj_wrapper::NAME as MJ_WRAPPER;
 use crate::node::Node;
+use crate::prelude::parse::ParserOptions;
 use crate::prelude::parse::{Error, Parsable};
+use std::rc::Rc;
 use xmlparser::{StrSpan, Tokenizer};
 
 impl Parsable for MjBodyChild {
-    fn parse<'a>(tag: StrSpan<'a>, tokenizer: &mut Tokenizer<'a>) -> Result<Self, Error> {
+    fn parse<'a>(
+        tag: StrSpan<'a>,
+        tokenizer: &mut Tokenizer<'a>,
+        opts: Rc<ParserOptions>,
+    ) -> Result<Self, Error> {
         match tag.as_str() {
-            MJ_ACCORDION => Ok(MjAccordion::parse(tag, tokenizer)?.into()),
-            MJ_BUTTON => Ok(MjButton::parse(tag, tokenizer)?.into()),
-            MJ_CAROUSEL => Ok(MjCarousel::parse(tag, tokenizer)?.into()),
-            MJ_COLUMN => Ok(MjColumn::parse(tag, tokenizer)?.into()),
-            MJ_DIVIDER => Ok(MjDivider::parse(tag, tokenizer)?.into()),
-            MJ_GROUP => Ok(MjGroup::parse(tag, tokenizer)?.into()),
-            MJ_HERO => Ok(MjHero::parse(tag, tokenizer)?.into()),
-            MJ_IMAGE => Ok(MjImage::parse(tag, tokenizer)?.into()),
-            MJ_NAVBAR => Ok(MjNavbar::parse(tag, tokenizer)?.into()),
-            MJ_RAW => Ok(MjRaw::parse(tag, tokenizer)?.into()),
-            MJ_SECTION => Ok(MjSection::parse(tag, tokenizer)?.into()),
-            MJ_SOCIAL => Ok(MjSocial::parse(tag, tokenizer)?.into()),
-            MJ_SPACER => Ok(MjSpacer::parse(tag, tokenizer)?.into()),
-            MJ_TABLE => Ok(MjTable::parse(tag, tokenizer)?.into()),
-            MJ_TEXT => Ok(MjText::parse(tag, tokenizer)?.into()),
-            MJ_WRAPPER => Ok(MjWrapper::parse(tag, tokenizer)?.into()),
-            _ => Ok(Node::<MjBodyChild>::parse(tag, tokenizer)?.into()),
+            MJ_ACCORDION => Ok(MjAccordion::parse(tag, tokenizer, opts)?.into()),
+            MJ_BUTTON => Ok(MjButton::parse(tag, tokenizer, opts)?.into()),
+            MJ_CAROUSEL => Ok(MjCarousel::parse(tag, tokenizer, opts)?.into()),
+            MJ_COLUMN => Ok(MjColumn::parse(tag, tokenizer, opts)?.into()),
+            MJ_DIVIDER => Ok(MjDivider::parse(tag, tokenizer, opts)?.into()),
+            MJ_GROUP => Ok(MjGroup::parse(tag, tokenizer, opts)?.into()),
+            MJ_HERO => Ok(MjHero::parse(tag, tokenizer, opts)?.into()),
+            MJ_IMAGE => Ok(MjImage::parse(tag, tokenizer, opts)?.into()),
+            MJ_NAVBAR => Ok(MjNavbar::parse(tag, tokenizer, opts)?.into()),
+            MJ_RAW => Ok(MjRaw::parse(tag, tokenizer, opts)?.into()),
+            MJ_SECTION => Ok(MjSection::parse(tag, tokenizer, opts)?.into()),
+            MJ_SOCIAL => Ok(MjSocial::parse(tag, tokenizer, opts)?.into()),
+            MJ_SPACER => Ok(MjSpacer::parse(tag, tokenizer, opts)?.into()),
+            MJ_TABLE => Ok(MjTable::parse(tag, tokenizer, opts)?.into()),
+            MJ_TEXT => Ok(MjText::parse(tag, tokenizer, opts)?.into()),
+            MJ_WRAPPER => Ok(MjWrapper::parse(tag, tokenizer, opts)?.into()),
+            _ => Ok(Node::<MjBodyChild>::parse(tag, tokenizer, opts)?.into()),
             // _ => Err(ParserError::UnexpectedElement(tag.start())),
         }
     }

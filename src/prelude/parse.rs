@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use xmlparser::{StrSpan, Token, Tokenizer};
 
 #[macro_export]
@@ -8,9 +10,7 @@ macro_rules! parse_attribute {
             name: xmlparser::StrSpan<'a>,
             value: xmlparser::StrSpan<'a>,
         ) -> Result<(), Error> {
-            self.0
-                .attributes
-                .insert(name.to_string(), value.to_string());
+            self.attributes.insert(name.to_string(), value.to_string());
             Ok(())
         }
     };
@@ -24,7 +24,8 @@ macro_rules! parse_child {
             tag: xmlparser::StrSpan<'a>,
             tokenizer: &mut xmlparser::Tokenizer<'a>,
         ) -> Result<(), Error> {
-            self.0.children.push($child_parser::parse(tag, tokenizer)?);
+            self.children
+                .push($child_parser::parse(tag, tokenizer, self.opts.clone())?);
             Ok(())
         }
     };
@@ -34,8 +35,7 @@ macro_rules! parse_child {
 macro_rules! parse_comment {
     () => {
         fn parse_child_comment(&mut self, value: xmlparser::StrSpan) -> Result<(), Error> {
-            self.0
-                .children
+            self.children
                 .push($crate::comment::Comment::from(value.as_str()).into());
             Ok(())
         }
@@ -46,8 +46,7 @@ macro_rules! parse_comment {
 macro_rules! parse_text {
     () => {
         fn parse_child_text(&mut self, value: xmlparser::StrSpan) -> Result<(), Error> {
-            self.0
-                .children
+            self.children
                 .push($crate::text::Text::from(value.as_str()).into());
             Ok(())
         }
@@ -211,5 +210,36 @@ pub trait Parser: Sized {
 }
 
 pub trait Parsable: Sized {
-    fn parse<'a>(tag: StrSpan<'a>, tokenizer: &mut Tokenizer<'a>) -> Result<Self, Error>;
+    fn parse<'a>(
+        tag: StrSpan<'a>,
+        tokenizer: &mut Tokenizer<'a>,
+        opts: Rc<ParserOptions>,
+    ) -> Result<Self, Error>;
+}
+
+pub trait IncludeLoader: std::fmt::Debug {
+    fn resolve(&self, path: String) -> Result<String, String>;
+}
+
+#[derive(Debug, Default)]
+pub struct NoopIncludeLoader;
+
+impl IncludeLoader for NoopIncludeLoader {
+    fn resolve(&self, path: String) -> Result<String, String> {
+        Err(format!("unable to resolve {path:?}"))
+    }
+}
+
+#[derive(Debug)]
+pub struct ParserOptions {
+    pub include_loader: Box<dyn IncludeLoader>,
+}
+
+#[allow(clippy::box_default)]
+impl Default for ParserOptions {
+    fn default() -> Self {
+        Self {
+            include_loader: Box::new(NoopIncludeLoader::default()),
+        }
+    }
 }
