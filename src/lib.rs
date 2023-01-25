@@ -19,6 +19,7 @@ pub mod mj_group;
 pub mod mj_head;
 pub mod mj_hero;
 pub mod mj_image;
+pub mod mj_include;
 pub mod mj_navbar;
 pub mod mj_navbar_link;
 pub mod mj_preview;
