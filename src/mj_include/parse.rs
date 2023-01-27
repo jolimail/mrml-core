@@ -58,7 +58,7 @@ impl Parsable for MjIncludeChild {
             crate::mj_wrapper::NAME => Ok(Self::MjWrapper(crate::mj_wrapper::MjWrapper::parse(
                 tag, tokenizer, opts,
             )?)),
-            other => Ok(Self::Node(crate::node::Node::parse(tag, tokenizer, opts)?)),
+            _ => Ok(Self::Node(crate::node::Node::parse(tag, tokenizer, opts)?)),
         }
     }
 }
@@ -88,7 +88,7 @@ impl Parser for MjIncludeParser {
             .load(&self.attributes.path, self.opts.clone())?;
         Ok(MjInclude {
             attributes: self.attributes,
-            children: Some(child),
+            children: vec![child],
         })
     }
 
@@ -152,6 +152,6 @@ mod tests {
         let root = crate::mjml::Mjml::parse_with_options(json, Rc::new(opts)).unwrap();
         let body = root.children.body.unwrap();
         let include = body.children.first().unwrap().as_mj_include().unwrap();
-        let content = include.children.as_ref().unwrap();
+        let _content = include.children.first().unwrap();
     }
 }

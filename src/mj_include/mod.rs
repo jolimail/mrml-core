@@ -1,5 +1,5 @@
-// #[cfg(feature = "json")]
-// mod json;
+#[cfg(feature = "json")]
+mod json;
 #[cfg(feature = "parse")]
 mod parse;
 // #[cfg(feature = "print")]
@@ -12,6 +12,8 @@ pub const NAME: &str = "mj-include";
 pub type Child = MjIncludeChild;
 
 #[derive(Debug)]
+#[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "json", serde(untagged))]
 pub enum MjIncludeChild {
     MjAccordion(crate::mj_accordion::MjAccordion),
     MjButton(crate::mj_button::MjButton),
@@ -51,5 +53,5 @@ impl MjIncludeAttributes {
 #[cfg_attr(feature = "json", mrml_json(tag = "NAME"))]
 pub struct MjInclude {
     pub attributes: MjIncludeAttributes,
-    pub children: Option<Child>,
+    pub children: Vec<Child>,
 }
