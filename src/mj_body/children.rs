@@ -65,7 +65,7 @@ impl MjBodyChild {
             Self::MjDivider(elt) => elt,
             Self::MjGroup(elt) => elt,
             Self::MjHero(elt) => elt,
-            Self::MjInclude(elt) => todo!(),
+            Self::MjInclude(_elt) => todo!(),
             Self::MjImage(elt) => elt,
             Self::MjNavbar(elt) => elt,
             Self::MjRaw(elt) => elt,

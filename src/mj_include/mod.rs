@@ -2,8 +2,8 @@
 mod json;
 #[cfg(feature = "parse")]
 mod parse;
-// #[cfg(feature = "print")]
-// mod print;
+#[cfg(feature = "print")]
+mod print;
 // #[cfg(feature = "render")]
 // mod render;
 
@@ -14,6 +14,7 @@ pub type Child = MjIncludeChild;
 #[derive(Debug)]
 #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "json", serde(untagged))]
+#[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintChildren))]
 pub enum MjIncludeChild {
     MjAccordion(crate::mj_accordion::MjAccordion),
     MjButton(crate::mj_button::MjButton),
@@ -36,6 +37,7 @@ pub enum MjIncludeChild {
 
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintAttributes))]
 pub struct MjIncludeAttributes {
     pub path: String,
 }
@@ -47,8 +49,8 @@ impl MjIncludeAttributes {
 }
 
 #[derive(Debug, Default)]
-// #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintComponent))]
-// #[cfg_attr(feature = "print", mrml_print(tag = "NAME"))]
+#[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintComponent))]
+#[cfg_attr(feature = "print", mrml_print(tag = "NAME", children = false))]
 #[cfg_attr(feature = "json", derive(mrml_json_macros::MrmlJsonComponent))]
 #[cfg_attr(feature = "json", mrml_json(tag = "NAME"))]
 pub struct MjInclude {
