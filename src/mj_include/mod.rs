@@ -4,8 +4,8 @@ mod json;
 mod parse;
 #[cfg(feature = "print")]
 mod print;
-// #[cfg(feature = "render")]
-// mod render;
+#[cfg(feature = "render")]
+mod render;
 
 pub const NAME: &str = "mj-include";
 
