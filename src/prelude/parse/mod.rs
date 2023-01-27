@@ -1,6 +1,9 @@
 use std::rc::Rc;
-
 use xmlparser::{StrSpan, Token, Tokenizer};
+
+pub mod loader;
+pub mod memory_loader;
+pub mod noop_loader;
 
 #[macro_export]
 macro_rules! parse_attribute {
@@ -68,6 +71,7 @@ pub enum Error {
     ParserError(xmlparser::Error),
     /// The Mjml document must have at least one element.
     NoRootNode,
+    IncludeLoaderError(String),
 }
 
 impl From<xmlparser::Error> for Error {
@@ -95,6 +99,9 @@ impl ToString for Error {
             Self::SizeLimit => "size limit reached".to_string(),
             Self::ParserError(inner) => format!("parsing error: {inner}"),
             Self::NoRootNode => "no root not found".to_string(),
+            Self::IncludeLoaderError(reason) => {
+                format!("unable to load included template: {reason}")
+            }
         }
     }
 }
@@ -107,15 +114,11 @@ pub(crate) fn next_token<'a>(tokenizer: &mut Tokenizer<'a>) -> Result<Token<'a>,
     }
 }
 
-pub(crate) fn is_element_start(token: &Token) -> bool {
-    matches!(
-        token,
-        Token::ElementStart {
-            prefix: _,
-            local: _,
-            span: _,
-        }
-    )
+pub(crate) fn is_element_start<'a>(token: &'a Token<'a>) -> Option<&'a StrSpan<'a>> {
+    match token {
+        Token::ElementStart { local, .. } => Some(local),
+        _ => None,
+    }
 }
 
 pub trait Parser: Sized {
@@ -217,29 +220,16 @@ pub trait Parsable: Sized {
     ) -> Result<Self, Error>;
 }
 
-pub trait IncludeLoader: std::fmt::Debug {
-    fn resolve(&self, path: String) -> Result<String, String>;
-}
-
-#[derive(Debug, Default)]
-pub struct NoopIncludeLoader;
-
-impl IncludeLoader for NoopIncludeLoader {
-    fn resolve(&self, path: String) -> Result<String, String> {
-        Err(format!("unable to resolve {path:?}"))
-    }
-}
-
 #[derive(Debug)]
 pub struct ParserOptions {
-    pub include_loader: Box<dyn IncludeLoader>,
+    pub include_loader: Box<dyn loader::IncludeLoader>,
 }
 
 #[allow(clippy::box_default)]
 impl Default for ParserOptions {
     fn default() -> Self {
         Self {
-            include_loader: Box::new(NoopIncludeLoader::default()),
+            include_loader: Box::new(noop_loader::NoopIncludeLoader::default()),
         }
     }
 }

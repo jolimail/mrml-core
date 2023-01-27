@@ -63,7 +63,7 @@ impl Mjml {
     ) -> Result<Self, Error> {
         let mut tokenizer = Tokenizer::from(value.as_ref());
         let token = next_token(&mut tokenizer)?;
-        if is_element_start(&token) {
+        if is_element_start(&token).is_some() {
             MjmlParser::new(opts).parse(&mut tokenizer)?.build()
         } else {
             Err(Error::InvalidFormat)

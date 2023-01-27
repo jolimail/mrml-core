@@ -30,8 +30,8 @@ pub struct MjmlAttributes {
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintChildren))]
 pub struct MjmlChildren {
-    head: Option<MjHead>,
-    body: Option<MjBody>,
+    pub head: Option<MjHead>,
+    pub body: Option<MjBody>,
 }
 
 #[derive(Debug, Default)]

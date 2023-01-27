@@ -7,15 +7,49 @@ mod parse;
 // #[cfg(feature = "render")]
 // mod render;
 
-use crate::prelude::hash::Map;
-
 pub const NAME: &str = "mj-include";
+
+pub type Child = MjIncludeChild;
+
+#[derive(Debug)]
+pub enum MjIncludeChild {
+    MjAccordion(crate::mj_accordion::MjAccordion),
+    MjButton(crate::mj_button::MjButton),
+    MjCarousel(crate::mj_carousel::MjCarousel),
+    MjColumn(crate::mj_column::MjColumn),
+    MjDivider(crate::mj_divider::MjDivider),
+    MjGroup(crate::mj_group::MjGroup),
+    MjHero(crate::mj_hero::MjHero),
+    MjImage(crate::mj_image::MjImage),
+    MjNavbar(crate::mj_navbar::MjNavbar),
+    MjRaw(crate::mj_raw::MjRaw),
+    MjSection(crate::mj_section::MjSection),
+    MjSocial(crate::mj_social::MjSocial),
+    MjSpacer(crate::mj_spacer::MjSpacer),
+    MjTable(crate::mj_table::MjTable),
+    MjText(crate::mj_text::MjText),
+    MjWrapper(crate::mj_wrapper::MjWrapper),
+    Node(crate::node::Node<crate::mj_body::MjBodyChild>),
+}
+
 #[derive(Debug, Default)]
-#[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintComponent))]
-#[cfg_attr(feature = "print", mrml_print(tag = "NAME"))]
-#[cfg_attr(feature = "parse", derive(mrml_parse_macros::MrmlParseComponent))]
-// #[cfg_attr(feature = "json", derive(mrml_json_macros::MrmlJsonComponent))]
-// #[cfg_attr(feature = "json", mrml_json(tag = "NAME"))]
+#[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
+pub struct MjIncludeAttributes {
+    pub path: String,
+}
+
+impl MjIncludeAttributes {
+    pub fn is_empty(&self) -> bool {
+        false
+    }
+}
+
+#[derive(Debug, Default)]
+// #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintComponent))]
+// #[cfg_attr(feature = "print", mrml_print(tag = "NAME"))]
+#[cfg_attr(feature = "json", derive(mrml_json_macros::MrmlJsonComponent))]
+#[cfg_attr(feature = "json", mrml_json(tag = "NAME"))]
 pub struct MjInclude {
-    pub attributes: Map<String, String>,
+    pub attributes: MjIncludeAttributes,
+    pub children: Option<Child>,
 }

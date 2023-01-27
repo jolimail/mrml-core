@@ -1,4 +1,4 @@
-#[cfg(feature = "render")]
+#[cfg(any(test, feature = "render"))]
 pub mod condition;
 #[cfg(feature = "render")]
 pub mod random;
