@@ -35,11 +35,48 @@ pub enum MjIncludeChild {
     Node(crate::node::Node<crate::mj_body::MjBodyChild>),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "json", serde(rename_all = "snake_case"))]
+pub enum MjIncludeKind {
+    Mjml,
+    Html,
+}
+
+impl ToString for MjIncludeKind {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Html => "html".to_string(),
+            Self::Mjml => "mjml".to_string(),
+        }
+    }
+}
+
+impl MjIncludeKind {
+    fn is_default(&self) -> bool {
+        matches!(self, Self::Mjml)
+    }
+}
+
+impl Default for MjIncludeKind {
+    fn default() -> Self {
+        Self::Mjml
+    }
+}
+
 #[derive(Debug, Default)]
 #[cfg_attr(feature = "json", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintAttributes))]
 pub struct MjIncludeAttributes {
     pub path: String,
+    #[cfg_attr(
+        feature = "json",
+        serde(
+            default,
+            rename = "type",
+            skip_serializing_if = "MjIncludeKind::is_default"
+        )
+    )]
+    pub kind: MjIncludeKind,
 }
 
 impl MjIncludeAttributes {

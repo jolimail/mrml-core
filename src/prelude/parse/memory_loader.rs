@@ -24,7 +24,6 @@ impl From<Map<String, String>> for MemoryIncludeLoader {
 
 impl IncludeLoader for MemoryIncludeLoader {
     fn resolve(&self, path: &str) -> Result<String, String> {
-        println!("resolve {path} in {:?}", self.0.keys());
         self.0
             .get(path)
             .map(|v| v.clone())

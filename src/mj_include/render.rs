@@ -1,10 +1,7 @@
 use super::{MjInclude, MjIncludeChild};
-use crate::helper::size::Pixel;
-use crate::helper::tag::Tag;
 use crate::prelude::hash::Map;
 use crate::prelude::render::{Error, Header, Options, Render, Renderable};
 use std::cell::{Ref, RefCell};
-use std::convert::TryFrom;
 use std::rc::Rc;
 
 impl MjIncludeChild {
@@ -60,11 +57,9 @@ impl<'e, 'h> Render<'h> for MjIncludeRender<'e, 'h> {
     }
 
     fn render(&self, opts: &Options) -> Result<String, Error> {
-        // let element_width = self.get_width();
         let mut children = String::default();
         for (index, child) in self.element.children.iter().enumerate() {
             let mut renderer = child.renderer(Rc::clone(&self.header));
-            // renderer.set_container_width(element_width.clone());
             renderer.set_index(index);
             renderer.set_siblings(self.element.children.len());
             children.push_str(&renderer.render(opts)?);
@@ -87,13 +82,17 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
+    use crate::mj_body::MjBodyChild;
     use crate::mj_head::MjHead;
-    use crate::mj_include::MjInclude;
+    use crate::mj_include::{MjInclude, MjIncludeKind};
+    use crate::mj_raw::{MjRaw, MjRawChild};
     use crate::mj_text::MjText;
+    use crate::node::Node;
     use crate::prelude::render::{Header, Options, Renderable};
+    use crate::text::Text;
 
     #[test]
-    fn simple() {
+    fn basic_mjml_kind() {
         let opts = Options::default();
         let mj_head = Some(MjHead::default());
         let expected = {
@@ -108,6 +107,42 @@ mod tests {
             elt.attributes.path = "memory:foo.mjml".to_string();
             elt.children
                 .push(crate::mj_include::MjIncludeChild::MjText(MjText::default()));
+            let renderer = elt.renderer(header);
+            renderer.render(&opts).unwrap()
+        };
+        assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn basic_html_kind() {
+        let opts = Options::default();
+        let mj_head = Some(MjHead::default());
+
+        let expected = {
+            let header = Rc::new(RefCell::new(Header::new(&mj_head)));
+
+            let mut node = Node::new("span".to_string());
+            node.children
+                .push(MjRawChild::Text(Text::from("Hello World!")));
+
+            let mut root = MjRaw::default();
+            root.children.push(MjRawChild::Node(node));
+            let renderer = root.renderer(header);
+            renderer.render(&opts).unwrap()
+        };
+        let result = {
+            let header = Rc::new(RefCell::new(Header::new(&mj_head)));
+
+            let mut node = Node::new("span".to_string());
+            node.children
+                .push(MjBodyChild::Text(Text::from("Hello World!")));
+
+            let mut elt = MjInclude::default();
+            elt.attributes.kind = MjIncludeKind::Html;
+            elt.attributes.path = "memory:foo.html".to_string();
+            elt.children
+                .push(crate::mj_include::MjIncludeChild::Node(node));
+
             let renderer = elt.renderer(header);
             renderer.render(&opts).unwrap()
         };

@@ -1,7 +1,33 @@
-use super::{MjInclude, MjIncludeAttributes, MjIncludeChild};
+use super::{MjInclude, MjIncludeAttributes, MjIncludeChild, MjIncludeKind};
+use crate::mj_body::MjBodyChild;
+use crate::mj_wrapper::MjWrapper;
 use crate::prelude::parse::{Error, Parsable, Parser, ParserOptions};
-use std::rc::Rc;
+use std::{rc::Rc, str::FromStr};
 use xmlparser::{StrSpan, Tokenizer};
+
+impl From<MjIncludeChild> for MjBodyChild {
+    fn from(value: MjIncludeChild) -> Self {
+        match value {
+            MjIncludeChild::MjAccordion(inner) => MjBodyChild::MjAccordion(inner),
+            MjIncludeChild::MjButton(inner) => MjBodyChild::MjButton(inner),
+            MjIncludeChild::MjCarousel(inner) => MjBodyChild::MjCarousel(inner),
+            MjIncludeChild::MjColumn(inner) => MjBodyChild::MjColumn(inner),
+            MjIncludeChild::MjDivider(inner) => MjBodyChild::MjDivider(inner),
+            MjIncludeChild::MjGroup(inner) => MjBodyChild::MjGroup(inner),
+            MjIncludeChild::MjHero(inner) => MjBodyChild::MjHero(inner),
+            MjIncludeChild::MjImage(inner) => MjBodyChild::MjImage(inner),
+            MjIncludeChild::MjNavbar(inner) => MjBodyChild::MjNavbar(inner),
+            MjIncludeChild::MjRaw(inner) => MjBodyChild::MjRaw(inner),
+            MjIncludeChild::MjSection(inner) => MjBodyChild::MjSection(inner),
+            MjIncludeChild::MjSocial(inner) => MjBodyChild::MjSocial(inner),
+            MjIncludeChild::MjSpacer(inner) => MjBodyChild::MjSpacer(inner),
+            MjIncludeChild::MjTable(inner) => MjBodyChild::MjTable(inner),
+            MjIncludeChild::MjText(inner) => MjBodyChild::MjText(inner),
+            MjIncludeChild::MjWrapper(inner) => MjBodyChild::MjWrapper(inner),
+            MjIncludeChild::Node(inner) => MjBodyChild::Node(inner),
+        }
+    }
+}
 
 impl Parsable for MjIncludeChild {
     fn parse<'a>(
@@ -63,6 +89,33 @@ impl Parsable for MjIncludeChild {
     }
 }
 
+impl FromStr for MjIncludeKind {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "html" => Ok(Self::Html),
+            "mjml" => Ok(Self::Mjml),
+            other => Err(Error::InvalidElement(format!(
+                "invalid mj-include attribute kind {other:?}"
+            ))),
+        }
+    }
+}
+
+impl MjIncludeKind {
+    fn wrap(&self, children: Vec<MjIncludeChild>) -> Vec<MjIncludeChild> {
+        match self {
+            Self::Mjml => children,
+            Self::Html => {
+                let mut wrapper = MjWrapper::default();
+                wrapper.children = children.into_iter().map(|item| item.into()).collect();
+                vec![MjIncludeChild::MjWrapper(wrapper)]
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 struct MjIncludeParser {
     opts: Rc<ParserOptions>,
@@ -86,9 +139,12 @@ impl Parser for MjIncludeParser {
             .opts
             .include_loader
             .load(&self.attributes.path, self.opts.clone())?;
+
+        let children = self.attributes.kind.wrap(vec![child]);
+
         Ok(MjInclude {
             attributes: self.attributes,
-            children: vec![child],
+            children,
         })
     }
 
@@ -96,6 +152,9 @@ impl Parser for MjIncludeParser {
         match name.as_str() {
             "path" => {
                 self.attributes.path = value.to_string();
+            }
+            "type" => {
+                self.attributes.kind = MjIncludeKind::from_str(value.as_str())?;
             }
             _ => return Err(Error::UnexpectedAttribute(name.start())),
         }
@@ -117,6 +176,7 @@ impl Parsable for MjInclude {
 mod tests {
     use std::rc::Rc;
 
+    use crate::mj_include::MjIncludeKind;
     use crate::prelude::parse::memory_loader::MemoryIncludeLoader;
     use crate::prelude::parse::{Error, ParserOptions};
 
@@ -152,6 +212,25 @@ mod tests {
         let root = crate::mjml::Mjml::parse_with_options(json, Rc::new(opts)).unwrap();
         let body = root.children.body.unwrap();
         let include = body.children.first().unwrap().as_mj_include().unwrap();
+        assert_eq!(include.attributes.kind, MjIncludeKind::Mjml);
+        let _content = include.children.first().unwrap();
+    }
+
+    #[test]
+    fn type_html_in_memory_resolver() {
+        let resolver = MemoryIncludeLoader::from(vec![("partial.html", "<h1>Hello World!</h1>")]);
+        let mut opts = ParserOptions::default();
+        opts.include_loader = Box::new(resolver);
+        let json = r#"<mjml>
+  <mj-body>
+    <mj-include path="partial.html" type="html" />
+  </mj-body>
+</mjml>
+"#;
+        let root = crate::mjml::Mjml::parse_with_options(json, Rc::new(opts)).unwrap();
+        let body = root.children.body.unwrap();
+        let include = body.children.first().unwrap().as_mj_include().unwrap();
+        assert_eq!(include.attributes.kind, MjIncludeKind::Html);
         let _content = include.children.first().unwrap();
     }
 }
