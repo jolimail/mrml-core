@@ -16,6 +16,7 @@ pub type Child = MjIncludeChild;
 #[cfg_attr(feature = "json", serde(untagged))]
 #[cfg_attr(feature = "print", derive(mrml_print_macros::MrmlPrintChildren))]
 pub enum MjIncludeChild {
+    Comment(crate::comment::Comment),
     MjAccordion(crate::mj_accordion::MjAccordion),
     MjButton(crate::mj_button::MjButton),
     MjCarousel(crate::mj_carousel::MjCarousel),
@@ -33,6 +34,7 @@ pub enum MjIncludeChild {
     MjText(crate::mj_text::MjText),
     MjWrapper(crate::mj_wrapper::MjWrapper),
     Node(crate::node::Node<crate::mj_body::MjBodyChild>),
+    Text(crate::text::Text),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -41,6 +43,7 @@ pub enum MjIncludeChild {
 pub enum MjIncludeKind {
     Mjml,
     Html,
+    Css { inline: bool },
 }
 
 impl ToString for MjIncludeKind {
@@ -48,6 +51,8 @@ impl ToString for MjIncludeKind {
         match self {
             Self::Html => "html".to_string(),
             Self::Mjml => "mjml".to_string(),
+
+            Self::Css { inline: _ } => "css".to_string(),
         }
     }
 }

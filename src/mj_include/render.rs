@@ -7,6 +7,7 @@ use std::rc::Rc;
 impl MjIncludeChild {
     pub fn as_renderable<'r, 'e: 'r, 'h: 'r>(&'e self) -> &'e (dyn Renderable<'r, 'e, 'h> + 'e) {
         match self {
+            Self::Comment(elt) => elt,
             Self::MjAccordion(elt) => elt,
             Self::MjButton(elt) => elt,
             Self::MjCarousel(elt) => elt,
@@ -24,6 +25,7 @@ impl MjIncludeChild {
             Self::MjText(elt) => elt,
             Self::MjWrapper(elt) => elt,
             Self::Node(elt) => elt,
+            Self::Text(elt) => elt,
         }
     }
 }

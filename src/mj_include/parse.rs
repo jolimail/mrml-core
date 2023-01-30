@@ -8,6 +8,7 @@ use xmlparser::{StrSpan, Tokenizer};
 impl From<MjIncludeChild> for MjBodyChild {
     fn from(value: MjIncludeChild) -> Self {
         match value {
+            MjIncludeChild::Comment(inner) => MjBodyChild::Comment(inner),
             MjIncludeChild::MjAccordion(inner) => MjBodyChild::MjAccordion(inner),
             MjIncludeChild::MjButton(inner) => MjBodyChild::MjButton(inner),
             MjIncludeChild::MjCarousel(inner) => MjBodyChild::MjCarousel(inner),
@@ -25,6 +26,7 @@ impl From<MjIncludeChild> for MjBodyChild {
             MjIncludeChild::MjText(inner) => MjBodyChild::MjText(inner),
             MjIncludeChild::MjWrapper(inner) => MjBodyChild::MjWrapper(inner),
             MjIncludeChild::Node(inner) => MjBodyChild::Node(inner),
+            MjIncludeChild::Text(inner) => MjBodyChild::Text(inner),
         }
     }
 }
@@ -96,6 +98,7 @@ impl FromStr for MjIncludeKind {
         match s {
             "html" => Ok(Self::Html),
             "mjml" => Ok(Self::Mjml),
+            "css" => Ok(Self::Css { inline: false }),
             other => Err(Error::InvalidElement(format!(
                 "invalid mj-include attribute kind {other:?}"
             ))),
@@ -112,6 +115,7 @@ impl MjIncludeKind {
                 wrapper.children = children.into_iter().map(|item| item.into()).collect();
                 vec![MjIncludeChild::MjWrapper(wrapper)]
             }
+            Self::Css { inline: _ } => todo!(),
         }
     }
 }
@@ -155,6 +159,9 @@ impl Parser for MjIncludeParser {
             }
             "type" => {
                 self.attributes.kind = MjIncludeKind::from_str(value.as_str())?;
+            }
+            "css-inline" => {
+                self.attributes.kind = MjIncludeKind::Css { inline: true };
             }
             _ => return Err(Error::UnexpectedAttribute(name.start())),
         }

@@ -1,11 +1,22 @@
 use crate::prelude::hash::Map;
 
+use super::MjIncludeKind;
+
 impl super::MjIncludeAttributes {
     pub fn as_map(&self) -> Map<String, String> {
         let mut res = Map::new();
         res.insert("path".to_string(), self.path.clone());
-        if !self.kind.is_default() {
-            res.insert("type".to_string(), self.kind.to_string());
+        match self.kind {
+            MjIncludeKind::Html => {
+                res.insert("type".into(), "html".into());
+            }
+            MjIncludeKind::Css { inline } => {
+                res.insert("type".into(), "css".into());
+                if inline {
+                    res.insert("css-inline".into(), "inline".into());
+                }
+            }
+            _ => {}
         }
         res
     }
