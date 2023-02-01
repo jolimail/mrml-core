@@ -1,15 +1,16 @@
 extern crate proc_macro;
 
+mod attributes;
 mod element;
 
-use common_macros::{as_data_enum, as_data_struct, as_path, get_fields, is_option};
+use common_macros::{as_data_enum, as_data_struct, as_path, is_option};
 use darling::FromDeriveInput;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DataEnum, DataStruct, DeriveInput};
 
 #[proc_macro_derive(MrmlPrintComponent, attributes(mrml_print))]
-pub fn derive(input: TokenStream) -> TokenStream {
+pub fn derive_element(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
     let opts = element::Opts::from_derive_input(&ast).expect("Wrong options");
 
@@ -20,33 +21,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
 pub fn derive_attributes(input: TokenStream) -> TokenStream {
     let ast: DeriveInput = parse_macro_input!(input as DeriveInput);
 
-    let name = &ast.ident;
-    let fields =
-        get_fields(&ast)
-            .iter()
-            .filter_map(|f| match (&f.ident, as_path(f).map(is_option)) {
-                (Some(ident), Some(true)) => Some(quote! {
-                    if let Some(ref value) = self.#ident {
-                        res.insert(stringify!(#ident).to_string(), value.to_string());
-                    }
-                }),
-                (Some(ident), Some(false)) => Some(quote! {
-                    res.insert(stringify!(#ident).to_string(), self.#ident.to_string());
-                }),
-                _ => None,
-            });
-
-    let res = quote! {
-        impl #name {
-            fn as_map(&self) -> crate::prelude::hash::Map<String, String> {
-                let mut res = crate::prelude::hash::Map::new();
-                #(#fields)*
-                res
-            }
-        }
-    };
-
-    res.into()
+    attributes::Generator::from(ast).build().into()
 }
 
 #[proc_macro_derive(MrmlPrintChildren)]
