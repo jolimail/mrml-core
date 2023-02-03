@@ -176,8 +176,9 @@ mod tests {
     fn basic_in_memory_resolver() {
         let resolver =
             MemoryIncludeLoader::from(vec![("basic.mjml", "<mj-title>Hello</mj-title>")]);
-        let mut opts = ParserOptions::default();
-        opts.include_loader = Box::new(resolver);
+        let opts = ParserOptions {
+            include_loader: Box::new(resolver),
+        };
         let json = r#"<mjml>
   <mj-head>
     <mj-include path="basic.mjml" />
@@ -196,8 +197,9 @@ mod tests {
     fn type_css_in_memory_resolver() {
         let resolver =
             MemoryIncludeLoader::from(vec![("partial.css", "* { background-color: red; }")]);
-        let mut opts = ParserOptions::default();
-        opts.include_loader = Box::new(resolver);
+        let opts = ParserOptions {
+            include_loader: Box::new(resolver),
+        };
         let json = r#"<mjml>
   <mj-head>
     <mj-include path="partial.css" type="css" />

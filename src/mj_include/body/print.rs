@@ -6,11 +6,8 @@ impl super::MjIncludeBodyAttributes {
     pub fn as_map(&self) -> Map<String, String> {
         let mut res = Map::new();
         res.insert("path".to_string(), self.path.clone());
-        match self.kind {
-            MjIncludeBodyKind::Html => {
-                res.insert("type".into(), "html".into());
-            }
-            _ => {}
+        if self.kind == MjIncludeBodyKind::Html {
+            res.insert("type".into(), "html".into());
         }
         res
     }

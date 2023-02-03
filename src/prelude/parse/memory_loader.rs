@@ -26,7 +26,7 @@ impl IncludeLoader for MemoryIncludeLoader {
     fn resolve(&self, path: &str) -> Result<String, String> {
         self.0
             .get(path)
-            .map(|v| v.clone())
+            .cloned()
             .ok_or_else(|| format!("unable to resolve {path:?}"))
     }
 }

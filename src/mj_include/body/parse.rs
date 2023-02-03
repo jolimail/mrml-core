@@ -226,8 +226,9 @@ mod tests {
     fn basic_in_memory_resolver() {
         let resolver =
             MemoryIncludeLoader::from(vec![("basic.mjml", "<mj-button>Hello</mj-button>")]);
-        let mut opts = ParserOptions::default();
-        opts.include_loader = Box::new(resolver);
+        let opts = ParserOptions {
+            include_loader: Box::new(resolver),
+        };
         let json = r#"<mjml>
   <mj-body>
     <mj-include path="basic.mjml" />
@@ -244,8 +245,9 @@ mod tests {
     #[test]
     fn type_html_in_memory_resolver() {
         let resolver = MemoryIncludeLoader::from(vec![("partial.html", "<h1>Hello World!</h1>")]);
-        let mut opts = ParserOptions::default();
-        opts.include_loader = Box::new(resolver);
+        let opts = ParserOptions {
+            include_loader: Box::new(resolver),
+        };
         let json = r#"<mjml>
   <mj-body>
     <mj-include path="partial.html" type="html" />

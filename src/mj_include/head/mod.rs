@@ -7,6 +7,7 @@ mod print;
 #[cfg(feature = "render")]
 mod render;
 
+#[cfg(any(feature = "print", feature = "json"))]
 use super::NAME;
 
 #[derive(Debug, mrml_macros::MrmlChildren)]
@@ -44,6 +45,7 @@ impl ToString for MjIncludeHeadKind {
     }
 }
 
+#[cfg(feature = "json")]
 impl MjIncludeHeadKind {
     fn is_default(&self) -> bool {
         matches!(self, Self::Mjml)

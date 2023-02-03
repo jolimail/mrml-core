@@ -51,15 +51,12 @@ fn select_mj_styles<'a>(buffer: &mut Vec<&'a str>, children: &'a [MjHeadChild]) 
         if let Some(mj_style) = child.as_mj_style() {
             buffer.push(mj_style.children());
         } else if let Some(mj_include) = child.as_mj_include() {
-            match mj_include.attributes.kind {
-                MjIncludeHeadKind::Css { inline: false } => {
-                    mj_include
-                        .children
-                        .iter()
-                        .filter_map(|c| c.as_text())
-                        .for_each(|c| buffer.push(c.inner_str()));
-                }
-                _ => {}
+            if let MjIncludeHeadKind::Css { inline: false } = mj_include.attributes.kind {
+                mj_include
+                    .children
+                    .iter()
+                    .filter_map(|c| c.as_text())
+                    .for_each(|c| buffer.push(c.inner_str()));
             }
         }
     }

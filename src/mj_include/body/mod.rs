@@ -7,6 +7,7 @@ mod print;
 #[cfg(feature = "render")]
 mod render;
 
+#[cfg(any(feature = "print", feature = "json"))]
 use super::NAME;
 
 #[derive(Debug)]
@@ -52,6 +53,7 @@ impl ToString for MjIncludeBodyKind {
     }
 }
 
+#[cfg(feature = "json")]
 impl MjIncludeBodyKind {
     fn is_default(&self) -> bool {
         matches!(self, Self::Mjml)
