@@ -7,7 +7,7 @@ use crate::mj_divider::MjDivider;
 use crate::mj_group::MjGroup;
 use crate::mj_hero::MjHero;
 use crate::mj_image::MjImage;
-use crate::mj_include::MjInclude;
+use crate::mj_include::body::MjIncludeBody;
 use crate::mj_navbar::MjNavbar;
 use crate::mj_raw::MjRaw;
 use crate::mj_section::MjSection;
@@ -39,7 +39,7 @@ pub enum MjBodyChild {
     MjDivider(MjDivider),
     MjGroup(MjGroup),
     MjHero(MjHero),
-    MjInclude(MjInclude),
+    MjInclude(MjIncludeBody),
     MjImage(MjImage),
     MjNavbar(MjNavbar),
     MjRaw(MjRaw),

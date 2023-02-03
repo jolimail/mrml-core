@@ -13,5 +13,5 @@ pub mod style;
 #[cfg(feature = "render")]
 pub mod tag;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "parse"))]
 pub mod test;

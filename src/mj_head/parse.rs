@@ -28,6 +28,9 @@ impl Parsable for MjHeadChild {
             MJ_ATTRIBUTES => Ok(MjAttributes::parse(tag, tokenizer, opts)?.into()),
             MJ_BREAKPOINT => Ok(MjBreakpoint::parse(tag, tokenizer, opts)?.into()),
             MJ_FONT => Ok(MjFont::parse(tag, tokenizer, opts)?.into()),
+            crate::mj_include::NAME => {
+                Ok(crate::mj_include::head::MjIncludeHead::parse(tag, tokenizer, opts)?.into())
+            }
             MJ_PREVIEW => Ok(MjPreview::parse(tag, tokenizer, opts)?.into()),
             MJ_RAW => Ok(MjRaw::parse(tag, tokenizer, opts)?.into()),
             MJ_STYLE => Ok(MjStyle::parse(tag, tokenizer, opts)?.into()),

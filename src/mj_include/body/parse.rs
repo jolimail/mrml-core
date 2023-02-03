@@ -1,37 +1,55 @@
-use super::{MjInclude, MjIncludeAttributes, MjIncludeChild, MjIncludeKind};
+use super::{MjIncludeBody, MjIncludeBodyAttributes, MjIncludeBodyChild, MjIncludeBodyKind};
+use crate::comment::Comment;
 use crate::mj_body::MjBodyChild;
 use crate::mj_wrapper::MjWrapper;
 use crate::prelude::parse::{Error, Parsable, Parser, ParserOptions};
-use std::{rc::Rc, str::FromStr};
+use crate::text::Text;
+use std::convert::TryFrom;
+use std::rc::Rc;
+use std::str::FromStr;
 use xmlparser::{StrSpan, Tokenizer};
 
-impl From<MjIncludeChild> for MjBodyChild {
-    fn from(value: MjIncludeChild) -> Self {
-        match value {
-            MjIncludeChild::Comment(inner) => MjBodyChild::Comment(inner),
-            MjIncludeChild::MjAccordion(inner) => MjBodyChild::MjAccordion(inner),
-            MjIncludeChild::MjButton(inner) => MjBodyChild::MjButton(inner),
-            MjIncludeChild::MjCarousel(inner) => MjBodyChild::MjCarousel(inner),
-            MjIncludeChild::MjColumn(inner) => MjBodyChild::MjColumn(inner),
-            MjIncludeChild::MjDivider(inner) => MjBodyChild::MjDivider(inner),
-            MjIncludeChild::MjGroup(inner) => MjBodyChild::MjGroup(inner),
-            MjIncludeChild::MjHero(inner) => MjBodyChild::MjHero(inner),
-            MjIncludeChild::MjImage(inner) => MjBodyChild::MjImage(inner),
-            MjIncludeChild::MjNavbar(inner) => MjBodyChild::MjNavbar(inner),
-            MjIncludeChild::MjRaw(inner) => MjBodyChild::MjRaw(inner),
-            MjIncludeChild::MjSection(inner) => MjBodyChild::MjSection(inner),
-            MjIncludeChild::MjSocial(inner) => MjBodyChild::MjSocial(inner),
-            MjIncludeChild::MjSpacer(inner) => MjBodyChild::MjSpacer(inner),
-            MjIncludeChild::MjTable(inner) => MjBodyChild::MjTable(inner),
-            MjIncludeChild::MjText(inner) => MjBodyChild::MjText(inner),
-            MjIncludeChild::MjWrapper(inner) => MjBodyChild::MjWrapper(inner),
-            MjIncludeChild::Node(inner) => MjBodyChild::Node(inner),
-            MjIncludeChild::Text(inner) => MjBodyChild::Text(inner),
-        }
+impl From<Comment> for MjIncludeBodyChild {
+    fn from(value: Comment) -> Self {
+        Self::Comment(value)
     }
 }
 
-impl Parsable for MjIncludeChild {
+impl From<Text> for MjIncludeBodyChild {
+    fn from(value: Text) -> Self {
+        Self::Text(value)
+    }
+}
+
+impl std::convert::TryFrom<MjIncludeBodyChild> for MjBodyChild {
+    type Error = Error;
+
+    fn try_from(value: MjIncludeBodyChild) -> Result<Self, Error> {
+        Ok(match value {
+            MjIncludeBodyChild::Comment(inner) => MjBodyChild::Comment(inner),
+            MjIncludeBodyChild::MjAccordion(inner) => MjBodyChild::MjAccordion(inner),
+            MjIncludeBodyChild::MjButton(inner) => MjBodyChild::MjButton(inner),
+            MjIncludeBodyChild::MjCarousel(inner) => MjBodyChild::MjCarousel(inner),
+            MjIncludeBodyChild::MjColumn(inner) => MjBodyChild::MjColumn(inner),
+            MjIncludeBodyChild::MjDivider(inner) => MjBodyChild::MjDivider(inner),
+            MjIncludeBodyChild::MjGroup(inner) => MjBodyChild::MjGroup(inner),
+            MjIncludeBodyChild::MjHero(inner) => MjBodyChild::MjHero(inner),
+            MjIncludeBodyChild::MjImage(inner) => MjBodyChild::MjImage(inner),
+            MjIncludeBodyChild::MjNavbar(inner) => MjBodyChild::MjNavbar(inner),
+            MjIncludeBodyChild::MjRaw(inner) => MjBodyChild::MjRaw(inner),
+            MjIncludeBodyChild::MjSection(inner) => MjBodyChild::MjSection(inner),
+            MjIncludeBodyChild::MjSocial(inner) => MjBodyChild::MjSocial(inner),
+            MjIncludeBodyChild::MjSpacer(inner) => MjBodyChild::MjSpacer(inner),
+            MjIncludeBodyChild::MjTable(inner) => MjBodyChild::MjTable(inner),
+            MjIncludeBodyChild::MjText(inner) => MjBodyChild::MjText(inner),
+            MjIncludeBodyChild::MjWrapper(inner) => MjBodyChild::MjWrapper(inner),
+            MjIncludeBodyChild::Node(inner) => MjBodyChild::Node(inner),
+            MjIncludeBodyChild::Text(inner) => MjBodyChild::Text(inner),
+        })
+    }
+}
+
+impl Parsable for MjIncludeBodyChild {
     fn parse<'a>(
         tag: StrSpan<'a>,
         tokenizer: &mut Tokenizer<'a>,
@@ -91,14 +109,13 @@ impl Parsable for MjIncludeChild {
     }
 }
 
-impl FromStr for MjIncludeKind {
+impl FromStr for MjIncludeBodyKind {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "html" => Ok(Self::Html),
             "mjml" => Ok(Self::Mjml),
-            "css" => Ok(Self::Css { inline: false }),
             other => Err(Error::InvalidElement(format!(
                 "invalid mj-include attribute kind {other:?}"
             ))),
@@ -106,47 +123,51 @@ impl FromStr for MjIncludeKind {
     }
 }
 
-impl MjIncludeKind {
-    fn wrap(&self, children: Vec<MjIncludeChild>) -> Vec<MjIncludeChild> {
+impl MjIncludeBodyKind {
+    fn wrap(&self, children: Vec<MjIncludeBodyChild>) -> Result<Vec<MjIncludeBodyChild>, Error> {
         match self {
-            Self::Mjml => children,
+            Self::Mjml => Ok(children),
             Self::Html => {
                 let mut wrapper = MjWrapper::default();
-                wrapper.children = children.into_iter().map(|item| item.into()).collect();
-                vec![MjIncludeChild::MjWrapper(wrapper)]
+                for child in children {
+                    wrapper.children.push(MjBodyChild::try_from(child)?);
+                }
+                Ok(vec![MjIncludeBodyChild::MjWrapper(wrapper)])
             }
-            Self::Css { inline: _ } => todo!(),
         }
     }
 }
 
 #[derive(Debug)]
-struct MjIncludeParser {
+struct MjIncludeBodyParser {
     opts: Rc<ParserOptions>,
-    attributes: MjIncludeAttributes,
+    attributes: MjIncludeBodyAttributes,
 }
 
-impl MjIncludeParser {
+impl MjIncludeBodyParser {
     fn new(opts: Rc<ParserOptions>) -> Self {
         Self {
             opts,
-            attributes: MjIncludeAttributes::default(),
+            attributes: MjIncludeBodyAttributes::default(),
         }
     }
 }
 
-impl Parser for MjIncludeParser {
-    type Output = MjInclude;
+impl Parser for MjIncludeBodyParser {
+    type Output = MjIncludeBody;
 
     fn build(self) -> Result<Self::Output, Error> {
         let child = self
             .opts
             .include_loader
-            .load(&self.attributes.path, self.opts.clone())?;
+            .resolve(&self.attributes.path)
+            .map_err(Error::IncludeLoaderError)?;
 
-        let children = self.attributes.kind.wrap(vec![child]);
+        let child = crate::prelude::parse::loader::parse(&child, self.opts.clone())?;
 
-        Ok(MjInclude {
+        let children = self.attributes.kind.wrap(vec![child])?;
+
+        Ok(MjIncludeBody {
             attributes: self.attributes,
             children,
         })
@@ -158,10 +179,7 @@ impl Parser for MjIncludeParser {
                 self.attributes.path = value.to_string();
             }
             "type" => {
-                self.attributes.kind = MjIncludeKind::from_str(value.as_str())?;
-            }
-            "css-inline" => {
-                self.attributes.kind = MjIncludeKind::Css { inline: true };
+                self.attributes.kind = MjIncludeBodyKind::from_str(value.as_str())?;
             }
             _ => return Err(Error::UnexpectedAttribute(name.start())),
         }
@@ -169,13 +187,13 @@ impl Parser for MjIncludeParser {
     }
 }
 
-impl Parsable for MjInclude {
+impl Parsable for MjIncludeBody {
     fn parse(
         _tag: StrSpan,
         tokenizer: &mut Tokenizer,
         opts: Rc<ParserOptions>,
     ) -> Result<Self, Error> {
-        MjIncludeParser::new(opts).parse(tokenizer)?.build()
+        MjIncludeBodyParser::new(opts).parse(tokenizer)?.build()
     }
 }
 
@@ -183,7 +201,7 @@ impl Parsable for MjInclude {
 mod tests {
     use std::rc::Rc;
 
-    use crate::mj_include::MjIncludeKind;
+    use crate::mj_include::body::MjIncludeBodyKind;
     use crate::prelude::parse::memory_loader::MemoryIncludeLoader;
     use crate::prelude::parse::{Error, ParserOptions};
 
@@ -219,7 +237,7 @@ mod tests {
         let root = crate::mjml::Mjml::parse_with_options(json, Rc::new(opts)).unwrap();
         let body = root.children.body.unwrap();
         let include = body.children.first().unwrap().as_mj_include().unwrap();
-        assert_eq!(include.attributes.kind, MjIncludeKind::Mjml);
+        assert_eq!(include.attributes.kind, MjIncludeBodyKind::Mjml);
         let _content = include.children.first().unwrap();
     }
 
@@ -237,7 +255,7 @@ mod tests {
         let root = crate::mjml::Mjml::parse_with_options(json, Rc::new(opts)).unwrap();
         let body = root.children.body.unwrap();
         let include = body.children.first().unwrap().as_mj_include().unwrap();
-        assert_eq!(include.attributes.kind, MjIncludeKind::Html);
+        assert_eq!(include.attributes.kind, MjIncludeBodyKind::Html);
         let _content = include.children.first().unwrap();
     }
 }

@@ -15,7 +15,7 @@ use crate::mj_hero::MjHero;
 use crate::mj_hero::NAME as MJ_HERO;
 use crate::mj_image::MjImage;
 use crate::mj_image::NAME as MJ_IMAGE;
-use crate::mj_include::MjInclude;
+use crate::mj_include::body::MjIncludeBody;
 use crate::mj_include::NAME as MJ_INCLUDE;
 use crate::mj_navbar::MjNavbar;
 use crate::mj_navbar::NAME as MJ_NAVBAR;
@@ -54,7 +54,7 @@ impl Parsable for MjBodyChild {
             MJ_GROUP => Ok(MjGroup::parse(tag, tokenizer, opts)?.into()),
             MJ_HERO => Ok(MjHero::parse(tag, tokenizer, opts)?.into()),
             MJ_IMAGE => Ok(MjImage::parse(tag, tokenizer, opts)?.into()),
-            MJ_INCLUDE => Ok(MjInclude::parse(tag, tokenizer, opts)?.into()),
+            MJ_INCLUDE => Ok(MjIncludeBody::parse(tag, tokenizer, opts)?.into()),
             MJ_NAVBAR => Ok(MjNavbar::parse(tag, tokenizer, opts)?.into()),
             MJ_RAW => Ok(MjRaw::parse(tag, tokenizer, opts)?.into()),
             MJ_SECTION => Ok(MjSection::parse(tag, tokenizer, opts)?.into()),

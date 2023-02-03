@@ -1,10 +1,10 @@
-use super::{MjInclude, MjIncludeChild};
+use super::{MjIncludeBody, MjIncludeBodyChild};
 use crate::prelude::hash::Map;
 use crate::prelude::render::{Error, Header, Options, Render, Renderable};
 use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
-impl MjIncludeChild {
+impl MjIncludeBodyChild {
     pub fn as_renderable<'r, 'e: 'r, 'h: 'r>(&'e self) -> &'e (dyn Renderable<'r, 'e, 'h> + 'e) {
         match self {
             Self::Comment(elt) => elt,
@@ -30,7 +30,7 @@ impl MjIncludeChild {
     }
 }
 
-impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjIncludeChild {
+impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjIncludeBodyChild {
     fn is_raw(&self) -> bool {
         self.as_renderable().is_raw()
     }
@@ -40,12 +40,12 @@ impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjIncludeChild {
     }
 }
 
-struct MjIncludeRender<'e, 'h> {
+struct MjIncludeBodyRender<'e, 'h> {
     header: Rc<RefCell<Header<'h>>>,
-    element: &'e MjInclude,
+    element: &'e MjIncludeBody,
 }
 
-impl<'e, 'h> Render<'h> for MjIncludeRender<'e, 'h> {
+impl<'e, 'h> Render<'h> for MjIncludeBodyRender<'e, 'h> {
     fn attributes(&self) -> Option<&Map<String, String>> {
         None
     }
@@ -70,9 +70,9 @@ impl<'e, 'h> Render<'h> for MjIncludeRender<'e, 'h> {
     }
 }
 
-impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjInclude {
+impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjIncludeBody {
     fn renderer(&'e self, header: Rc<RefCell<Header<'h>>>) -> Box<dyn Render<'h> + 'r> {
-        Box::new(MjIncludeRender::<'e, 'h> {
+        Box::new(MjIncludeBodyRender::<'e, 'h> {
             element: self,
             header,
         })
@@ -86,7 +86,7 @@ mod tests {
 
     use crate::mj_body::MjBodyChild;
     use crate::mj_head::MjHead;
-    use crate::mj_include::{MjInclude, MjIncludeKind};
+    use crate::mj_include::body::{MjIncludeBody, MjIncludeBodyChild, MjIncludeBodyKind};
     use crate::mj_raw::{MjRaw, MjRawChild};
     use crate::mj_text::MjText;
     use crate::node::Node;
@@ -105,10 +105,10 @@ mod tests {
         };
         let result = {
             let header = Rc::new(RefCell::new(Header::new(&mj_head)));
-            let mut elt = MjInclude::default();
+            let mut elt = MjIncludeBody::default();
             elt.attributes.path = "memory:foo.mjml".to_string();
             elt.children
-                .push(crate::mj_include::MjIncludeChild::MjText(MjText::default()));
+                .push(MjIncludeBodyChild::MjText(MjText::default()));
             let renderer = elt.renderer(header);
             renderer.render(&opts).unwrap()
         };
@@ -139,11 +139,10 @@ mod tests {
             node.children
                 .push(MjBodyChild::Text(Text::from("Hello World!")));
 
-            let mut elt = MjInclude::default();
-            elt.attributes.kind = MjIncludeKind::Html;
+            let mut elt = MjIncludeBody::default();
+            elt.attributes.kind = MjIncludeBodyKind::Html;
             elt.attributes.path = "memory:foo.html".to_string();
-            elt.children
-                .push(crate::mj_include::MjIncludeChild::Node(node));
+            elt.children.push(MjIncludeBodyChild::Node(node));
 
             let renderer = elt.renderer(header);
             renderer.render(&opts).unwrap()
