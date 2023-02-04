@@ -165,8 +165,8 @@ mod tests {
 "#;
         let err = crate::mjml::Mjml::parse(json).unwrap_err();
         match err {
-            Error::IncludeLoaderError(msg) => {
-                assert_eq!(msg, "unable to resolve \"basic.mjml\"")
+            Error::IncludeLoaderError(origin) => {
+                assert_eq!(origin.reason, std::io::ErrorKind::NotFound);
             }
             _ => panic!("expected a IncludeLoaderError"),
         }

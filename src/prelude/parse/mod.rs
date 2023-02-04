@@ -1,6 +1,8 @@
 use std::rc::Rc;
 use xmlparser::{StrSpan, Token, Tokenizer};
 
+use self::loader::IncludeLoaderError;
+
 pub mod loader;
 pub mod memory_loader;
 pub mod noop_loader;
@@ -71,7 +73,7 @@ pub enum Error {
     ParserError(xmlparser::Error),
     /// The Mjml document must have at least one element.
     NoRootNode,
-    IncludeLoaderError(String),
+    IncludeLoaderError(IncludeLoaderError),
 }
 
 impl From<xmlparser::Error> for Error {

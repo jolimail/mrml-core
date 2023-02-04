@@ -57,6 +57,27 @@ impl Parser for MjmlParser {
 }
 
 impl Mjml {
+    /// Function to parse a raw mjml template with some parsing [options](crate::prelude::parse::ParserOptions).
+    ///
+    /// You can specify the kind of loader mrml needs to use for loading the content of
+    /// [`mj-include`](crate::mj_include) elements.
+    ///
+    /// You can take a look at the available loaders [here](crate::prelude::parse).
+    ///
+    /// ```rust
+    /// use mrml::mjml::Mjml;
+    /// use mrml::prelude::parse::ParserOptions;
+    /// use mrml::prelude::parse::memory_loader::MemoryIncludeLoader;
+    /// use std::rc::Rc;
+    ///
+    /// let options = Rc::new(ParserOptions {
+    ///     include_loader: Box::new(MemoryIncludeLoader::default()),
+    /// });
+    /// match Mjml::parse_with_options("<mjml><mj-head /><mj-body /></mjml>", options) {
+    ///     Ok(_) => println!("Success!"),
+    ///     Err(err) => eprintln!("Something went wrong: {err:?}"),
+    /// }
+    /// ```
     pub fn parse_with_options<T: AsRef<str>>(
         value: T,
         opts: std::rc::Rc<crate::prelude::parse::ParserOptions>,
@@ -70,6 +91,16 @@ impl Mjml {
         }
     }
 
+    /// Function to parse a raw mjml template using the default parsing [options](crate::prelude::parse::ParserOptions).
+    ///
+    /// ```rust
+    /// use mrml::mjml::Mjml;
+    ///
+    /// match Mjml::parse("<mjml><mj-head /><mj-body /></mjml>") {
+    ///     Ok(_) => println!("Success!"),
+    ///     Err(err) => eprintln!("Something went wrong: {err:?}"),
+    /// }
+    /// ```
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
         let opts = std::rc::Rc::new(crate::prelude::parse::ParserOptions::default());
         Self::parse_with_options(value, opts)

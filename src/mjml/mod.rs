@@ -39,6 +39,8 @@ pub struct MjmlChildren {
 #[cfg_attr(feature = "print", mrml_print(tag = "NAME"))]
 #[cfg_attr(feature = "json", derive(mrml_json_macros::MrmlJsonComponent))]
 #[cfg_attr(feature = "json", mrml_json(tag = "NAME"))]
+/// Representation of the `mjml` and its attributes and children defined
+/// in the [mjml documentation](https://documentation.mjml.io/#mjml).
 pub struct Mjml {
     pub attributes: MjmlAttributes,
     pub children: MjmlChildren,

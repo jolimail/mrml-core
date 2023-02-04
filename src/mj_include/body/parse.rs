@@ -199,11 +199,10 @@ impl Parsable for MjIncludeBody {
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
-
     use crate::mj_include::body::MjIncludeBodyKind;
     use crate::prelude::parse::memory_loader::MemoryIncludeLoader;
     use crate::prelude::parse::{Error, ParserOptions};
+    use std::rc::Rc;
 
     #[test]
     fn basic_in_noop_resolver() {
@@ -215,8 +214,8 @@ mod tests {
 "#;
         let err = crate::mjml::Mjml::parse(json).unwrap_err();
         match err {
-            Error::IncludeLoaderError(msg) => {
-                assert_eq!(msg, "unable to resolve \"basic.mjml\"")
+            Error::IncludeLoaderError(origin) => {
+                assert_eq!(origin.reason, std::io::ErrorKind::NotFound);
             }
             _ => panic!("expected a IncludeLoaderError"),
         }
