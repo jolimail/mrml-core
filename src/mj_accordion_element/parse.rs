@@ -67,3 +67,71 @@ impl Parsable for MjAccordionElement {
             .build()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::mj_accordion_element::MjAccordionElementChild;
+    use crate::prelude::parse::{Error, Parsable, ParserOptions};
+    use std::rc::Rc;
+    use xmlparser::{Token, Tokenizer};
+
+    #[test]
+    fn parse_title_child() {
+        let opts = Rc::new(ParserOptions::default());
+        let mut tokenizer = Tokenizer::from("<mj-accordion-title>Hello</mj-accordion-title>");
+        if let Token::ElementStart { local: tag, .. } = tokenizer.next().unwrap().unwrap() {
+            let elt = MjAccordionElementChild::parse(tag, &mut tokenizer, opts).unwrap();
+            assert!(elt.as_mj_accordion_title().is_some())
+        } else {
+            panic!("couldn't read element");
+        }
+    }
+
+    #[test]
+    fn parse_title_child_errored() {
+        let opts = Rc::new(ParserOptions::default());
+        let mut tokenizer =
+            Tokenizer::from("<mj-accordion-title><span>Hello</span></mj-accordion-title>");
+        if let Token::ElementStart { local: tag, .. } = tokenizer.next().unwrap().unwrap() {
+            let err = MjAccordionElementChild::parse(tag, &mut tokenizer, opts).unwrap_err();
+            assert!(matches!(err, Error::UnexpectedElement(21)));
+        } else {
+            panic!("couldn't read element");
+        }
+    }
+
+    #[test]
+    fn parse_text_child() {
+        let opts = Rc::new(ParserOptions::default());
+        let mut tokenizer = Tokenizer::from("<mj-accordion-text>Hello</mj-accordion-text>");
+        if let Token::ElementStart { local: tag, .. } = tokenizer.next().unwrap().unwrap() {
+            let elt = MjAccordionElementChild::parse(tag, &mut tokenizer, opts).unwrap();
+            assert!(elt.as_mj_accordion_text().is_some());
+        } else {
+            panic!("couldn't read element");
+        }
+    }
+
+    #[test]
+    fn parse_text_child_errored() {
+        let opts = Rc::new(ParserOptions::default());
+        let mut tokenizer = Tokenizer::from("<mj-accordion-text>");
+        if let Token::ElementStart { local: tag, .. } = tokenizer.next().unwrap().unwrap() {
+            let err = MjAccordionElementChild::parse(tag, &mut tokenizer, opts).unwrap_err();
+            assert!(matches!(err, Error::InvalidFormat));
+        } else {
+            panic!("couldn't read element");
+        }
+    }
+
+    #[test]
+    fn parse_unknown_child() {
+        let opts = Rc::new(ParserOptions::default());
+        let mut tokenizer = Tokenizer::from("<mj-pouwet>Hello</mj-pouwet>");
+        if let Token::ElementStart { local: tag, .. } = tokenizer.next().unwrap().unwrap() {
+            assert!(MjAccordionElementChild::parse(tag, &mut tokenizer, opts).is_err());
+        } else {
+            panic!("couldn't read element");
+        }
+    }
+}
