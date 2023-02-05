@@ -7,7 +7,7 @@ use crate::mj_accordion_title::MjAccordionTitle;
 use crate::mj_accordion_title::NAME as MJ_ACCORDION_TITLE;
 #[cfg(feature = "parse")]
 use crate::prelude::parse::{Error as ParserError, Parsable, ParserOptions};
-#[cfg(any(feature = "render", feature = "parse"))]
+#[cfg(feature = "parse")]
 use std::rc::Rc;
 #[cfg(feature = "parse")]
 use xmlparser::{StrSpan, Tokenizer};
