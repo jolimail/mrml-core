@@ -142,13 +142,10 @@ mod tests {
 
     #[test]
     fn parse_with_options() {
-        use crate::prelude::parse::memory_loader::MemoryIncludeLoader;
         use crate::prelude::parse::ParserOptions;
         use std::rc::Rc;
 
-        let options = Rc::new(ParserOptions {
-            include_loader: Box::new(MemoryIncludeLoader::default()),
-        });
+        let options = Rc::new(ParserOptions::default());
         let _ = crate::parse_with_options("<mjml><mj-head /><mj-body /></mjml>", options);
     }
 }

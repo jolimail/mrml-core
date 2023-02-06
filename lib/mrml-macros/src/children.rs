@@ -58,7 +58,8 @@ fn derive_children_enum(ast: &DeriveInput, data_enum: &DataEnum) -> proc_macro2:
     let as_tests = data_enum
         .variants
         .iter()
-        .filter(|v| v.ident.to_string() != "Node")
+        // TODO implement a proper test for Node items
+        .filter(|v| v.ident != "Node")
         .map(|v| {
             let as_fname = Ident::new(
                 &format!("as_{}", to_snake_case(&v.ident.to_string())),
