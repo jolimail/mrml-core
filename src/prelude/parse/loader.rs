@@ -14,6 +14,7 @@ use xmlparser::Token;
 pub struct IncludeLoaderError {
     pub path: String,
     pub reason: ErrorKind,
+    pub message: Option<&'static str>,
     pub cause: Option<Box<dyn std::error::Error>>,
 }
 
@@ -22,6 +23,7 @@ impl IncludeLoaderError {
         Self {
             path: path.to_string(),
             reason,
+            message: None,
             cause: None,
         }
     }
@@ -30,14 +32,33 @@ impl IncludeLoaderError {
         Self {
             path: path.to_string(),
             reason: ErrorKind::NotFound,
+            message: None,
             cause: None,
         }
+    }
+
+    pub fn with_message(mut self, message: &'static str) -> Self {
+        self.message = Some(message);
+        self
+    }
+
+    pub fn with_cause(mut self, cause: Box<dyn std::error::Error>) -> Self {
+        self.cause = Some(cause);
+        self
     }
 }
 
 impl std::fmt::Display for IncludeLoaderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Unable to load template {}: {}", self.path, self.reason)
+        if let Some(msg) = self.message {
+            write!(
+                f,
+                "Unable to load template {}: {} ({})",
+                self.path, msg, self.reason
+            )
+        } else {
+            write!(f, "Unable to load template {}: {}", self.path, self.reason)
+        }
     }
 }
 
