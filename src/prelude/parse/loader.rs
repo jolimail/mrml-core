@@ -88,3 +88,41 @@ pub fn parse<T: Parsable + From<Comment> + From<Text>>(
         _ => Err(Error::InvalidFormat),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::io::ErrorKind;
+
+    use super::IncludeLoaderError;
+
+    #[test]
+    fn should_display_basic() {
+        assert_eq!(
+            IncludeLoaderError::new("foo.mjml", ErrorKind::NotFound).to_string(),
+            "Unable to load template foo.mjml: entity not found",
+        );
+    }
+
+    #[test]
+    fn should_display_with_message() {
+        assert_eq!(
+            IncludeLoaderError::new("foo.mjml", ErrorKind::NotFound)
+                .with_message("oops")
+                .to_string(),
+            "Unable to load template foo.mjml: oops (entity not found)",
+        );
+    }
+
+    #[test]
+    fn should_display_with_cause() {
+        assert_eq!(
+            IncludeLoaderError::new("foo.mjml", ErrorKind::NotFound)
+                .with_cause(Box::new(IncludeLoaderError::new(
+                    "bar.mjml",
+                    ErrorKind::InvalidInput
+                )))
+                .to_string(),
+            "Unable to load template foo.mjml: entity not found",
+        );
+    }
+}
