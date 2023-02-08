@@ -123,7 +123,9 @@ impl HttpIncludeLoader {
     /// Check that the given url provided by the `path` attribute in the `mj-include` complies with the filtering.
     fn check_url(&self, path: &str) -> Result<(), IncludeLoaderError> {
         let url = url::Url::parse(path).map_err(|err| {
-            IncludeLoaderError::new(path, ErrorKind::InvalidInput).with_cause(Box::new(err))
+            IncludeLoaderError::new(path, ErrorKind::InvalidInput)
+                .with_message("unable to parse the provided url")
+                .with_cause(Box::new(err))
         })?;
         let origin = url.origin().ascii_serialization();
         if self.origin.is_allowed(&origin) {
@@ -145,11 +147,15 @@ impl IncludeLoader for HttpIncludeLoader {
             .fold(req, |r, (key, value)| r.set(key.as_str(), value.as_str()));
         req.call()
             .map_err(|err| {
-                IncludeLoaderError::new(path, ErrorKind::NotFound).with_cause(Box::new(err))
+                IncludeLoaderError::new(path, ErrorKind::NotFound)
+                    .with_message("unable to fetch template")
+                    .with_cause(Box::new(err))
             })?
             .into_string()
             .map_err(|err| {
-                IncludeLoaderError::new(path, ErrorKind::InvalidData).with_cause(Box::new(err))
+                IncludeLoaderError::new(path, ErrorKind::InvalidData)
+                    .with_message("unable to convert remote template as string")
+                    .with_cause(Box::new(err))
             })
     }
 }
@@ -204,7 +210,10 @@ mod tests {
         assert!(loader.check_url("http://somewhere/partial.mjml").is_err());
         assert!(loader.check_url("https://somewhere/partial.mjml").is_ok());
         // invalid urls
-        assert!(loader.check_url("this:is:not:an:url").is_err());
+        assert_eq!(
+            loader.check_url("").unwrap_err().message.unwrap(),
+            "unable to parse the provided url"
+        );
     }
 
     #[test]
