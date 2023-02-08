@@ -112,7 +112,7 @@ impl HttpIncludeLoader {
         self
     }
 
-    pub fn set_header<K: ToString, V: ToString>(mut self, name: K, value: V) {
+    pub fn set_header<K: ToString, V: ToString>(&mut self, name: K, value: V) {
         self.headers.insert(name.to_string(), value.to_string());
     }
 
@@ -158,7 +158,15 @@ impl IncludeLoader for HttpIncludeLoader {
 mod tests {
     use super::{HttpIncludeLoader, OriginList};
     use crate::prelude::parse::loader::IncludeLoader;
-    use std::{collections::HashSet, io::ErrorKind};
+    use std::{
+        collections::{HashMap, HashSet},
+        io::ErrorKind,
+    };
+
+    #[test]
+    fn include_loader_should_implement_debug() {
+        let _ = format!("{:?}", HttpIncludeLoader::default());
+    }
 
     #[test]
     fn origin_list_is_allowed() {
@@ -179,6 +187,9 @@ mod tests {
         assert!(HttpIncludeLoader::new_allow(HashSet::default())
             .check_url("http://localhost/partial.mjml")
             .is_err());
+        assert!(HttpIncludeLoader::default()
+            .check_url("http://localhost/partial.mjml")
+            .is_err());
         // only deny some domains
         let loader = HttpIncludeLoader::new_deny(HashSet::from(["http://somewhere".to_string()]));
         assert!(loader.check_url("http://localhost/partial.mjml").is_ok());
@@ -192,6 +203,8 @@ mod tests {
         assert!(loader.check_url("http://localhost/partial.mjml").is_ok());
         assert!(loader.check_url("http://somewhere/partial.mjml").is_err());
         assert!(loader.check_url("https://somewhere/partial.mjml").is_ok());
+        // invalid urls
+        assert!(loader.check_url("this:is:not:an:url").is_err());
     }
 
     #[test]
@@ -201,7 +214,9 @@ mod tests {
             .with_status(200)
             .with_body("<mj-text>Hello World!</mj-text>")
             .create();
-        let loader = HttpIncludeLoader::new_allow(HashSet::from([mockito::server_url()]));
+        let mut loader = HttpIncludeLoader::new_allow(HashSet::from([mockito::server_url()]));
+        loader.set_header("foo", "bar");
+        loader.set_headers(Default::default());
         let resolved = loader
             .resolve(&format!("{}/partial.mjml", mockito::server_url()))
             .unwrap();
@@ -231,7 +246,11 @@ mod tests {
             .with_body("Not Found")
             .create();
         let loader = HttpIncludeLoader::new_allow(HashSet::from([mockito::server_url()]))
-            .with_header("user-agent", "mrml-test");
+            .with_header("user-agent", "invalid")
+            .with_headers(HashMap::from([(
+                "user-agent".to_string(),
+                "mrml-test".to_string(),
+            )]));
         let err = loader
             .resolve(&format!("{}/partial.mjml", mockito::server_url()))
             .unwrap_err();
