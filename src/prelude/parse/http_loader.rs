@@ -2,7 +2,7 @@
 
 use super::loader::IncludeLoaderError;
 use crate::prelude::parse::loader::IncludeLoader;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::io::ErrorKind;
 
 #[derive(Debug)]
@@ -58,6 +58,7 @@ impl OriginList {
 /// ```
 pub struct HttpIncludeLoader {
     origin: OriginList,
+    headers: HashMap<String, String>,
 }
 
 impl HttpIncludeLoader {
@@ -67,6 +68,7 @@ impl HttpIncludeLoader {
     pub fn allow_all() -> Self {
         Self {
             origin: OriginList::Deny(Default::default()),
+            headers: HashMap::default(),
         }
     }
 
@@ -81,6 +83,7 @@ impl HttpIncludeLoader {
     pub fn new_allow(origins: HashSet<String>) -> Self {
         Self {
             origin: OriginList::Allow(origins),
+            headers: HashMap::default(),
         }
     }
 
@@ -95,7 +98,26 @@ impl HttpIncludeLoader {
     pub fn new_deny(origins: HashSet<String>) -> Self {
         Self {
             origin: OriginList::Deny(origins),
+            headers: HashMap::default(),
         }
+    }
+
+    pub fn with_header<K: ToString, V: ToString>(mut self, name: K, value: V) -> Self {
+        self.headers.insert(name.to_string(), value.to_string());
+        self
+    }
+
+    pub fn with_headers(mut self, headers: HashMap<String, String>) -> Self {
+        self.headers = headers;
+        self
+    }
+
+    pub fn set_header<K: ToString, V: ToString>(mut self, name: K, value: V) {
+        self.headers.insert(name.to_string(), value.to_string());
+    }
+
+    pub fn set_headers(&mut self, headers: HashMap<String, String>) {
+        self.headers = headers;
     }
 
     /// Check that the given url provided by the `path` attribute in the `mj-include` complies with the filtering.
@@ -116,8 +138,12 @@ impl HttpIncludeLoader {
 impl IncludeLoader for HttpIncludeLoader {
     fn resolve(&self, path: &str) -> Result<String, IncludeLoaderError> {
         self.check_url(path)?;
-        ureq::get(path)
-            .call()
+        let req = ureq::get(path);
+        let req = self
+            .headers
+            .iter()
+            .fold(req, |r, (key, value)| r.set(key.as_str(), value.as_str()));
+        req.call()
             .map_err(|err| {
                 IncludeLoaderError::new(path, ErrorKind::NotFound).with_cause(Box::new(err))
             })?
@@ -190,6 +216,22 @@ mod tests {
             .with_body("Not Found")
             .create();
         let loader = HttpIncludeLoader::new_allow(HashSet::from([mockito::server_url()]));
+        let err = loader
+            .resolve(&format!("{}/partial.mjml", mockito::server_url()))
+            .unwrap_err();
+        assert_eq!(err.reason, ErrorKind::NotFound);
+        m.assert();
+    }
+
+    #[test]
+    fn include_loader_should_resolve_with_headers() {
+        let m = mockito::mock("GET", "/partial.mjml")
+            .match_header("user-agent", "mrml-test")
+            .with_status(404)
+            .with_body("Not Found")
+            .create();
+        let loader = HttpIncludeLoader::new_allow(HashSet::from([mockito::server_url()]))
+            .with_header("user-agent", "mrml-test");
         let err = loader
             .resolve(&format!("{}/partial.mjml", mockito::server_url()))
             .unwrap_err();
