@@ -3,7 +3,46 @@
 use super::loader::IncludeLoaderError;
 use crate::prelude::parse::loader::IncludeLoader;
 use std::collections::{HashMap, HashSet};
+use std::fmt::Debug;
 use std::io::ErrorKind;
+
+pub trait HttpFetcher: Default + Debug {
+    fn fetch(
+        &self,
+        url: &str,
+        headers: &HashMap<String, String>,
+    ) -> Result<String, IncludeLoaderError>;
+}
+
+#[cfg(feature = "http-loader-ureq")]
+#[derive(Debug, Default)]
+pub struct UreqFetcher;
+
+#[cfg(feature = "http-loader-ureq")]
+impl HttpFetcher for UreqFetcher {
+    fn fetch(
+        &self,
+        url: &str,
+        headers: &HashMap<String, String>,
+    ) -> Result<String, IncludeLoaderError> {
+        let req = ureq::get(url);
+        let req = headers
+            .iter()
+            .fold(req, |r, (key, value)| r.set(key.as_str(), value.as_str()));
+        req.call()
+            .map_err(|err| {
+                IncludeLoaderError::new(url, ErrorKind::NotFound)
+                    .with_message("unable to fetch template")
+                    .with_cause(Box::new(err))
+            })?
+            .into_string()
+            .map_err(|err| {
+                IncludeLoaderError::new(url, ErrorKind::InvalidData)
+                    .with_message("unable to convert remote template as string")
+                    .with_cause(Box::new(err))
+            })
+    }
+}
 
 #[derive(Debug)]
 /// This enum is a representation of the origin filtering strategy.
@@ -37,12 +76,12 @@ impl OriginList {
 ///
 /// # Example
 /// ```rust
-/// use mrml::prelude::parse::http_loader::HttpIncludeLoader;
+/// use mrml::prelude::parse::http_loader::{HttpIncludeLoader, UreqFetcher};
 /// use mrml::prelude::parse::ParserOptions;
 /// use std::collections::HashSet;
 /// use std::rc::Rc;
 ///
-/// let resolver = HttpIncludeLoader::new_allow(HashSet::from(["http://localhost".to_string()]));
+/// let resolver = HttpIncludeLoader::<UreqFetcher>::new_allow(HashSet::from(["http://localhost".to_string()]));
 /// let opts = ParserOptions {
 ///     include_loader: Box::new(resolver),
 /// };
@@ -56,12 +95,13 @@ impl OriginList {
 ///     Err(err) => eprintln!("Couldn't parse template: {err:?}"),
 /// }
 /// ```
-pub struct HttpIncludeLoader {
+pub struct HttpIncludeLoader<F> {
     origin: OriginList,
     headers: HashMap<String, String>,
+    fetcher: F,
 }
 
-impl HttpIncludeLoader {
+impl<F: HttpFetcher> HttpIncludeLoader<F> {
     /// Creates a new [`HttpIncludeLoader`](crate::prelude::parse::http_loader::HttpIncludeLoader) that allows all the origins.
     ///
     /// If you use this method, you should be careful, you could be loading some data from anywhere.
@@ -69,36 +109,39 @@ impl HttpIncludeLoader {
         Self {
             origin: OriginList::Deny(Default::default()),
             headers: HashMap::default(),
+            fetcher: F::default(),
         }
     }
 
     /// Creates a new instance with an allow list to filter the origins.
     ///
     /// ```rust
-    /// use mrml::prelude::parse::http_loader::HttpIncludeLoader;
+    /// use mrml::prelude::parse::http_loader::{HttpIncludeLoader, UreqFetcher};
     /// use std::collections::HashSet;
     ///
-    /// let resolver = HttpIncludeLoader::new_allow(HashSet::from(["http://localhost".to_string()]));
+    /// let resolver = HttpIncludeLoader::<UreqFetcher>::new_allow(HashSet::from(["http://localhost".to_string()]));
     /// ```
     pub fn new_allow(origins: HashSet<String>) -> Self {
         Self {
             origin: OriginList::Allow(origins),
             headers: HashMap::default(),
+            fetcher: F::default(),
         }
     }
 
     /// Creates a new instance with an dey list to filter the origins.
     ///
     /// ```rust
-    /// use mrml::prelude::parse::http_loader::HttpIncludeLoader;
+    /// use mrml::prelude::parse::http_loader::{HttpIncludeLoader, UreqFetcher};
     /// use std::collections::HashSet;
     ///
-    /// let resolver = HttpIncludeLoader::new_allow(HashSet::from(["http://somewhere.com".to_string()]));
+    /// let resolver = HttpIncludeLoader::<UreqFetcher>::new_allow(HashSet::from(["http://somewhere.com".to_string()]));
     /// ```
     pub fn new_deny(origins: HashSet<String>) -> Self {
         Self {
             origin: OriginList::Deny(origins),
             headers: HashMap::default(),
+            fetcher: F::default(),
         }
     }
 
@@ -137,42 +180,17 @@ impl HttpIncludeLoader {
     }
 }
 
-impl IncludeLoader for HttpIncludeLoader {
+impl<F: HttpFetcher> IncludeLoader for HttpIncludeLoader<F> {
     fn resolve(&self, path: &str) -> Result<String, IncludeLoaderError> {
         self.check_url(path)?;
-        let req = ureq::get(path);
-        let req = self
-            .headers
-            .iter()
-            .fold(req, |r, (key, value)| r.set(key.as_str(), value.as_str()));
-        req.call()
-            .map_err(|err| {
-                IncludeLoaderError::new(path, ErrorKind::NotFound)
-                    .with_message("unable to fetch template")
-                    .with_cause(Box::new(err))
-            })?
-            .into_string()
-            .map_err(|err| {
-                IncludeLoaderError::new(path, ErrorKind::InvalidData)
-                    .with_message("unable to convert remote template as string")
-                    .with_cause(Box::new(err))
-            })
+        self.fetcher.fetch(path, &self.headers)
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{HttpIncludeLoader, OriginList};
-    use crate::prelude::parse::loader::IncludeLoader;
-    use std::{
-        collections::{HashMap, HashSet},
-        io::ErrorKind,
-    };
-
-    #[test]
-    fn include_loader_should_implement_debug() {
-        let _ = format!("{:?}", HttpIncludeLoader::default());
-    }
+mod common_tests {
+    use super::OriginList;
+    use std::collections::HashSet;
 
     #[test]
     fn origin_list_is_allowed() {
@@ -182,27 +200,44 @@ mod tests {
         assert!(!OriginList::Deny(HashSet::from(["somewhere".to_string()])).is_allowed("somewhere"));
         assert!(OriginList::Deny(HashSet::default()).is_allowed("somewhere"));
     }
+}
+
+#[cfg(all(test, feature = "http-loader-ureq"))]
+mod ureq_tests {
+    use super::{HttpIncludeLoader, UreqFetcher};
+    use crate::prelude::parse::loader::IncludeLoader;
+    use std::collections::{HashMap, HashSet};
+    use std::io::ErrorKind;
+
+    #[test]
+    fn include_loader_should_implement_debug() {
+        let _ = format!("{:?}", HttpIncludeLoader::<UreqFetcher>::default());
+    }
 
     #[test]
     fn include_loader_should_validate_url() {
         // allow everything
-        assert!(HttpIncludeLoader::allow_all()
+        assert!(HttpIncludeLoader::<UreqFetcher>::allow_all()
             .check_url("http://localhost/partial.mjml")
             .is_ok());
         // allow nothing
-        assert!(HttpIncludeLoader::new_allow(HashSet::default())
-            .check_url("http://localhost/partial.mjml")
-            .is_err());
-        assert!(HttpIncludeLoader::default()
+        assert!(
+            HttpIncludeLoader::<UreqFetcher>::new_allow(HashSet::default())
+                .check_url("http://localhost/partial.mjml")
+                .is_err()
+        );
+        assert!(HttpIncludeLoader::<UreqFetcher>::default()
             .check_url("http://localhost/partial.mjml")
             .is_err());
         // only deny some domains
-        let loader = HttpIncludeLoader::new_deny(HashSet::from(["http://somewhere".to_string()]));
+        let loader = HttpIncludeLoader::<UreqFetcher>::new_deny(HashSet::from([
+            "http://somewhere".to_string(),
+        ]));
         assert!(loader.check_url("http://localhost/partial.mjml").is_ok());
         assert!(loader.check_url("http://somewhere/partial.mjml").is_err());
         assert!(loader.check_url("https://somewhere/partial.mjml").is_ok());
         // only allow some domains
-        let loader = HttpIncludeLoader::new_allow(HashSet::from([
+        let loader = HttpIncludeLoader::<UreqFetcher>::new_allow(HashSet::from([
             "http://localhost".to_string(),
             "https://somewhere".to_string(),
         ]));
@@ -223,7 +258,8 @@ mod tests {
             .with_status(200)
             .with_body("<mj-text>Hello World!</mj-text>")
             .create();
-        let mut loader = HttpIncludeLoader::new_allow(HashSet::from([mockito::server_url()]));
+        let mut loader =
+            HttpIncludeLoader::<UreqFetcher>::new_allow(HashSet::from([mockito::server_url()]));
         loader.set_header("foo", "bar");
         loader.set_headers(Default::default());
         let resolved = loader
@@ -239,7 +275,8 @@ mod tests {
             .with_status(404)
             .with_body("Not Found")
             .create();
-        let loader = HttpIncludeLoader::new_allow(HashSet::from([mockito::server_url()]));
+        let loader =
+            HttpIncludeLoader::<UreqFetcher>::new_allow(HashSet::from([mockito::server_url()]));
         let err = loader
             .resolve(&format!("{}/partial.mjml", mockito::server_url()))
             .unwrap_err();
@@ -254,12 +291,13 @@ mod tests {
             .with_status(404)
             .with_body("Not Found")
             .create();
-        let loader = HttpIncludeLoader::new_allow(HashSet::from([mockito::server_url()]))
-            .with_header("user-agent", "invalid")
-            .with_headers(HashMap::from([(
-                "user-agent".to_string(),
-                "mrml-test".to_string(),
-            )]));
+        let loader =
+            HttpIncludeLoader::<UreqFetcher>::new_allow(HashSet::from([mockito::server_url()]))
+                .with_header("user-agent", "invalid")
+                .with_headers(HashMap::from([(
+                    "user-agent".to_string(),
+                    "mrml-test".to_string(),
+                )]));
         let err = loader
             .resolve(&format!("{}/partial.mjml", mockito::server_url()))
             .unwrap_err();

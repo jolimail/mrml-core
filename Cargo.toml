@@ -23,7 +23,9 @@ print = ["dep:mrml-print-macros"]
 render = ["dep:rand"]
 orderedmap = ["dep:indexmap", "dep:rustc-hash"]
 local-loader = []
-http-loader = ["dep:ureq", "dep:url"]
+http-loader = ["http-loader-ureq"]
+http-loader-base = ["dep:url"]
+http-loader-ureq = ["dep:ureq", "http-loader-base"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
