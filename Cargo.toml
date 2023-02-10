@@ -25,6 +25,7 @@ orderedmap = ["dep:indexmap", "dep:rustc-hash"]
 local-loader = []
 http-loader = ["http-loader-ureq"]
 http-loader-base = ["dep:url"]
+http-loader-reqwest = ["dep:reqwest", "http-loader-base"]
 http-loader-ureq = ["dep:ureq", "http-loader-base"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -41,6 +42,9 @@ indexmap = { version = "1.9", features = ["serde-1"], optional = true }
 rustc-hash = { version = "1.1", optional = true }
 
 # http-loader feature related
+reqwest = { version = "0.11", default-features = false, features = [
+  "blocking",
+], optional = true }
 ureq = { version = "2.6", optional = true }
 url = { version = "^2", optional = true }
 
