@@ -1,0 +1,27 @@
+[package]
+name = "mrml-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2018"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.mrml]
+path = ".."
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "mrml_parsing"
+path = "fuzz_targets/mrml_parsing.rs"
+test = false
+doc = false
