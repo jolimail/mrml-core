@@ -4,8 +4,10 @@ use crate::helper::tag::Tag;
 use crate::mj_head::MjHead;
 use crate::prelude::hash::Map;
 use std::cell::{Ref, RefCell};
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::rc::Rc;
+
 
 use super::hash::Set;
 
@@ -15,10 +17,43 @@ pub enum Error {
     UnknownFragment(String),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Options {
     pub disable_comments: bool,
     pub social_icon_origin: Option<String>,
+    pub fonts: HashMap<String, String>,
+}
+
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            disable_comments: false,
+            social_icon_origin: None,
+            fonts: HashMap::from([
+                (
+                    "Open Sans".to_string(),
+                    "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700".to_string()
+                ),
+                (
+                    "Droid Sans".to_string(),
+                    "https://fonts.googleapis.com/css?family=Droid+Sans:300,400,500,700".to_string()
+                ),
+                (
+                    "Lato".to_string(),
+                    "https://fonts.googleapis.com/css?family=Lato:300,400,500,700".to_string()
+                ),
+                (
+                    "Roboto".to_string(),
+                    "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700".to_string()
+                ),
+                (
+                    "Ubuntu".to_string(),
+                    "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700".to_string()
+                ),
+            ]),
+        }
+    }
 }
 
 pub struct Header<'h> {
