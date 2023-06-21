@@ -63,6 +63,7 @@ mockito = "1.1"
 [workspace]
 members = [
   "./lib/common-macros",
+  "./lib/html-compare",
   "./lib/mrml-json-macros",
   "./lib/mrml-macros",
   "./lib/mrml-parse-macros",
