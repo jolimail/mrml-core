@@ -4,6 +4,7 @@ use crate::helper::spacing::Spacing;
 use crate::helper::tag::Tag;
 use crate::mj_head::MjHead;
 use crate::prelude::hash::Map;
+use std::borrow::Cow;
 use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -18,8 +19,8 @@ pub enum Error {
 #[derive(Debug)]
 pub struct Options {
     pub disable_comments: bool,
-    pub social_icon_origin: Option<String>,
-    pub fonts: HashMap<String, String>,
+    pub social_icon_origin: Option<Cow<'static, str>>,
+    pub fonts: HashMap<String, Cow<'static, str>>,
 }
 
 impl Default for Options {
@@ -29,25 +30,24 @@ impl Default for Options {
             social_icon_origin: None,
             fonts: HashMap::from([
                 (
-                    "Open Sans".to_string(),
-                    "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700".to_string(),
+                    "Open Sans".into(),
+                    "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700".into(),
                 ),
                 (
-                    "Droid Sans".to_string(),
-                    "https://fonts.googleapis.com/css?family=Droid+Sans:300,400,500,700"
-                        .to_string(),
+                    "Droid Sans".into(),
+                    "https://fonts.googleapis.com/css?family=Droid+Sans:300,400,500,700".into(),
                 ),
                 (
-                    "Lato".to_string(),
-                    "https://fonts.googleapis.com/css?family=Lato:300,400,500,700".to_string(),
+                    "Lato".into(),
+                    "https://fonts.googleapis.com/css?family=Lato:300,400,500,700".into(),
                 ),
                 (
-                    "Roboto".to_string(),
-                    "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700".to_string(),
+                    "Roboto".into(),
+                    "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700".into(),
                 ),
                 (
-                    "Ubuntu".to_string(),
-                    "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700".to_string(),
+                    "Ubuntu".into(),
+                    "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700".into(),
                 ),
             ]),
         }
