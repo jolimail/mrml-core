@@ -145,7 +145,7 @@ impl<'e, 'h> MjHeadRender<'e, 'h> {
             .used_font_families()
             .iter()
             .filter_map(|name| opts.fonts.get(name))
-            .for_each(|href| links.push_str(&self.render_font_link(&href)));
+            .for_each(|href| links.push_str(&self.render_font_link(href)));
         header
             .used_font_families()
             .iter()
@@ -156,7 +156,7 @@ impl<'e, 'h> MjHeadRender<'e, 'h> {
             .used_font_families()
             .iter()
             .filter_map(|name| opts.fonts.get(name))
-            .for_each(|href| imports.push_str(&self.render_font_import(&href)));
+            .for_each(|href| imports.push_str(&self.render_font_import(href)));
         header
             .used_font_families()
             .iter()
