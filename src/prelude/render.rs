@@ -1,3 +1,4 @@
+use super::hash::Set;
 use crate::helper::size::{Pixel, Size};
 use crate::helper::spacing::Spacing;
 use crate::helper::tag::Tag;
@@ -7,9 +8,6 @@ use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::rc::Rc;
-
-
-use super::hash::Set;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -24,7 +22,6 @@ pub struct Options {
     pub fonts: HashMap<String, String>,
 }
 
-
 impl Default for Options {
     fn default() -> Self {
         Self {
@@ -33,23 +30,24 @@ impl Default for Options {
             fonts: HashMap::from([
                 (
                     "Open Sans".to_string(),
-                    "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700".to_string()
+                    "https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,700".to_string(),
                 ),
                 (
                     "Droid Sans".to_string(),
-                    "https://fonts.googleapis.com/css?family=Droid+Sans:300,400,500,700".to_string()
+                    "https://fonts.googleapis.com/css?family=Droid+Sans:300,400,500,700"
+                        .to_string(),
                 ),
                 (
                     "Lato".to_string(),
-                    "https://fonts.googleapis.com/css?family=Lato:300,400,500,700".to_string()
+                    "https://fonts.googleapis.com/css?family=Lato:300,400,500,700".to_string(),
                 ),
                 (
                     "Roboto".to_string(),
-                    "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700".to_string()
+                    "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700".to_string(),
                 ),
                 (
                     "Ubuntu".to_string(),
-                    "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700".to_string()
+                    "https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700".to_string(),
                 ),
             ]),
         }
