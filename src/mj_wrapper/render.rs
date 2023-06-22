@@ -125,7 +125,6 @@ impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjWrapper {
 
 #[cfg(test)]
 mod tests {
-    use crate::helper::test::compare;
     use crate::mjml::Mjml;
     use crate::prelude::render::Options;
 
@@ -136,7 +135,7 @@ mod tests {
         let expected = include_str!("../../resources/compare/success/mj-wrapper.html");
         let root = Mjml::parse(template).unwrap();
         let result = root.render(&opts).unwrap();
-        compare(expected, result.as_str());
+        html_compare::assert_similar(expected, result.as_str());
     }
 
     #[test]
@@ -146,7 +145,7 @@ mod tests {
         let expected = include_str!("../../resources/compare/success/mj-wrapper-background.html");
         let root = Mjml::parse(template).unwrap();
         let result = root.render(&opts).unwrap();
-        compare(expected, result.as_str());
+        html_compare::assert_similar(expected, result.as_str());
     }
 
     #[test]
@@ -156,7 +155,7 @@ mod tests {
         let expected = include_str!("../../resources/compare/success/mj-wrapper-border.html");
         let root = Mjml::parse(template).unwrap();
         let result = root.render(&opts).unwrap();
-        compare(expected, result.as_str());
+        html_compare::assert_similar(expected, result.as_str());
     }
 
     #[test]
@@ -166,7 +165,7 @@ mod tests {
         let expected = include_str!("../../resources/compare/success/mj-wrapper-other.html");
         let root = Mjml::parse(template).unwrap();
         let result = root.render(&opts).unwrap();
-        compare(expected, result.as_str());
+        html_compare::assert_similar(expected, result.as_str());
     }
 
     #[test]
@@ -176,6 +175,6 @@ mod tests {
         let expected = include_str!("../../resources/compare/success/mj-wrapper-padding.html");
         let root = Mjml::parse(template).unwrap();
         let result = root.render(&opts).unwrap();
-        compare(expected, result.as_str());
+        html_compare::assert_similar(expected, result.as_str());
     }
 }
