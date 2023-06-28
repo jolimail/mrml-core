@@ -285,7 +285,6 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
         let mut result = tr.open();
         let children = self.children();
         if !children.is_empty() {
-            result.push_str(END_CONDITIONAL_TAG);
             for child in self.children().iter() {
                 let mut renderer = child.renderer(self.clone_header());
                 renderer.set_siblings(siblings);
@@ -298,12 +297,13 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
                         .set_style("td-outlook", Tag::td())
                         .maybe_add_attribute("align", renderer.attribute("align"))
                         .maybe_add_suffixed_class(renderer.attribute("css-class"), "outlook");
-                    result.push_str(&conditional_tag(td.open()));
+                    result.push_str(&td.open());
+                    result.push_str(END_CONDITIONAL_TAG);
                     result.push_str(&renderer.render(opts)?);
-                    result.push_str(&conditional_tag(td.close()));
+                    result.push_str(START_CONDITIONAL_TAG);
+                    result.push_str(&td.close());
                 }
             }
-            result.push_str(START_CONDITIONAL_TAG);
         }
         result.push_str(&tr.close());
         Ok(result)
