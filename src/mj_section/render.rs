@@ -398,7 +398,6 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
             .maybe_add_attribute("background", self.attribute("background-url"))
     }
 
-    // HERE
     fn render_full_width(&self, opts: &Options) -> Result<String, Error> {
         let table = self.get_full_width_table();
         let tbody = Tag::tbody();

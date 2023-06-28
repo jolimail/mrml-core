@@ -1,212 +1,31 @@
-use colored::Colorize;
-use htmlparser::{ElementEnd as HtmlElementEnd, StrSpan, Token, Tokenizer};
+mod error;
+mod helper;
+mod stack;
+mod token;
+
+use crate::error::*;
+use crate::helper::cleanup_text;
+use crate::token::*;
+use htmlparser::{ElementEnd as HtmlElementEnd, StrSpan, Token};
 use std::collections::{BTreeMap, BTreeSet};
-
-#[derive(Debug)]
-pub enum ErrorKind<'a> {
-    ExpectedElementNotFound {
-        expected_parent: StrSpan<'a>,
-        expected_element: Token<'a>,
-        generated_parent: StrSpan<'a>,
-    },
-    UnexpectedElementFound {
-        generated: Token<'a>,
-    },
-    ElementMismatch {
-        expected: Token<'a>,
-        generated: Token<'a>,
-    },
-    EndOfElementMismatch {
-        expected: ElementEnd<'a>,
-        generated: ElementEnd<'a>,
-    },
-    InvalidElementTag {
-        expected: ElementStart<'a>,
-        generated: ElementStart<'a>,
-    },
-    ExpectedAttributesNotFound {
-        expected: Vec<Attribute<'a>>,
-        generated: Vec<Attribute<'a>>,
-        difference: Vec<StrSpan<'a>>,
-    },
-    UnexpectedAttributesFound(Vec<StrSpan<'a>>),
-    ExpectedAttributeNotFound {
-        expected: Attribute<'a>,
-    },
-    InvalidAttributeValue {
-        expected: Attribute<'a>,
-        generated: Attribute<'a>,
-    },
-    ExpectedClassesNotFound {
-        expected: StrSpan<'a>,
-        generated: StrSpan<'a>,
-        difference: BTreeSet<&'a str>,
-    },
-    UnexpectedClassesFound {
-        expected: StrSpan<'a>,
-        generated: StrSpan<'a>,
-        difference: BTreeSet<&'a str>,
-    },
-    ExpectedStylesNotFound {
-        expected: StrSpan<'a>,
-        generated: StrSpan<'a>,
-        difference: BTreeSet<&'a str>,
-    },
-    UnexpectedStylesFound {
-        expected: StrSpan<'a>,
-        generated: StrSpan<'a>,
-        difference: BTreeSet<&'a str>,
-    },
-    ExpectedStyleNotFound {
-        expected: StrSpan<'a>,
-        generated: StrSpan<'a>,
-        missing: &'a str,
-    },
-    InvalidStyleValue {
-        expected: StrSpan<'a>,
-        generated: StrSpan<'a>,
-        key: &'a str,
-        expected_value: &'a str,
-        generated_value: &'a str,
-    },
-    TextMismatch {
-        expected: StrSpan<'a>,
-        generated: StrSpan<'a>,
-    },
-}
-
-impl<'a> ErrorKind<'a> {
-    pub fn display(&self) -> String {
-        // TODO improve error display
-        format!("{self:?}")
-    }
-}
-
-#[derive(Debug)]
-pub struct Error<'a> {
-    expected: &'a str,
-    generated: &'a str,
-    kind: ErrorKind<'a>,
-}
-
-fn display_subset<'a>(data: &str, span: StrSpan<'a>, gap: usize) -> String {
-    let start = span.start().checked_sub(gap).unwrap_or(0);
-    let end = usize::min(span.end() + gap, data.len());
-    format!(
-        "{}{}{}",
-        &data[start..span.start()],
-        data[span.start()..span.end()].red().bold(),
-        &data[span.end()..end]
-    )
-}
-
-const SUBSET_GAP: usize = 150;
-
-impl<'a> std::fmt::Display for Error<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.kind {
-            ErrorKind::ElementMismatch {
-                expected,
-                generated,
-            } => {
-                writeln!(f, "= Element mismatch")?;
-                writeln!(f, "== Expected result")?;
-                writeln!(f, "{}", display_subset(self.expected, expected.span(), SUBSET_GAP))?;
-                writeln!(f, "")?;
-                writeln!(f, "== Generated result")?;
-                writeln!(
-                    f,
-                    "{}",
-                    display_subset(self.generated, generated.span(), SUBSET_GAP)
-                )?;
-                writeln!(f, "")?;
-            }
-            ErrorKind::TextMismatch {
-                expected,
-                generated,
-            } => {
-                writeln!(f, "= Element mismatch")?;
-                writeln!(f, "== Expected result")?;
-                writeln!(f, "{}", display_subset(self.expected, expected, SUBSET_GAP))?;
-                writeln!(f, "")?;
-                writeln!(f, "== Generated result")?;
-                writeln!(f, "{}", display_subset(self.generated, generated, SUBSET_GAP))?;
-                writeln!(f, "")?;
-            }
-            _ => {
-                writeln!(f, "{:?}", self.kind)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Attribute<'a> {
-    pub prefix: StrSpan<'a>,
-    pub local: StrSpan<'a>,
-    pub value: StrSpan<'a>,
-    pub span: StrSpan<'a>,
-}
-
-#[derive(Debug)]
-pub struct ElementStart<'a> {
-    pub prefix: StrSpan<'a>,
-    pub local: StrSpan<'a>,
-    pub span: StrSpan<'a>,
-}
-
-#[derive(Debug)]
-pub struct ElementEnd<'a> {
-    pub end: htmlparser::ElementEnd<'a>,
-    pub span: StrSpan<'a>,
-}
-
-fn read_attributes<'a>(tokenizer: &mut Tokenizer<'a>) -> (Vec<Attribute<'a>>, ElementEnd<'a>) {
-    let mut result = Vec::new();
-    loop {
-        match tokenizer.next() {
-            Some(Ok(Token::Attribute {
-                prefix,
-                local,
-                value,
-                span,
-            })) => {
-                result.push(Attribute {
-                    prefix,
-                    local,
-                    value,
-                    span,
-                });
-            }
-            Some(Ok(Token::ElementEnd { end, span })) => return (result, ElementEnd { end, span }),
-            _ => panic!("invalid token in attributes"),
-        }
-    }
-}
 
 struct Cursor<'a> {
     // expected_str: &'a str,
-    expected_tokenizer: Tokenizer<'a>,
+    expected: crate::stack::TokenStack<'a>,
     // generated_str: &'a str,
-    generated_tokenizer: Tokenizer<'a>,
+    generated: crate::stack::TokenStack<'a>,
 }
 
 impl<'a> Cursor<'a> {
     fn new(expected_str: &'a str, generated_str: &'a str) -> Self {
         Self {
-            // expected_str,
-            expected_tokenizer: Tokenizer::from(expected_str),
-            // generated_str,
-            generated_tokenizer: Tokenizer::from(generated_str),
+            expected: crate::stack::TokenStack::parse(expected_str).sanitize(),
+            generated: crate::stack::TokenStack::parse(generated_str).sanitize(),
         }
     }
 
     fn next(&mut self) -> (Option<Token<'a>>, Option<Token<'a>>) {
-        (
-            next_element(&mut self.expected_tokenizer),
-            next_element(&mut self.generated_tokenizer),
-        )
+        (self.expected.next(), self.generated.next())
     }
 
     fn next_attributes(
@@ -216,8 +35,8 @@ impl<'a> Cursor<'a> {
         (Vec<Attribute<'a>>, ElementEnd<'a>),
     ) {
         (
-            read_attributes(&mut self.expected_tokenizer),
-            read_attributes(&mut self.generated_tokenizer),
+            Attribute::parse_all(&mut self.expected),
+            Attribute::parse_all(&mut self.generated),
         )
     }
 }
@@ -482,7 +301,7 @@ fn compare_tokens<'a>(
                 },
             )?;
         }
-        (Token::ElementEnd { end: _exp_end, .. }, Token::ElementEnd { end: _res_end, .. }) => {
+        (Token::ElementEnd { .. }, Token::ElementEnd { .. }) => {
             // END OF ELEMENT
             return Ok(());
         }
@@ -534,17 +353,13 @@ fn compare_next<'a>(
             // nothing to do
             Ok(false)
         }
-        (Some(token), None) => Err(ErrorKind::ExpectedElementNotFound {
+        (Some(expected_element), None) => Err(ErrorKind::ExpectedElementNotFound {
             expected_parent,
             generated_parent,
-            expected_element: token,
+            expected_element,
         }),
-        (None, Some(token)) => Err(ErrorKind::UnexpectedElementFound { generated: token }),
+        (None, Some(generated)) => Err(ErrorKind::UnexpectedElementFound { generated }),
     }
-}
-
-fn cleanup_text(input: &str) -> String {
-    input.replace([' ', '\t', '\n'], "")
 }
 
 fn compare_all<'a>(
@@ -582,28 +397,6 @@ pub fn compare<'a>(expected: &'a str, generated: &'a str) -> Result<(), Error<'a
 pub fn assert_similar(expected: &str, generated: &str) {
     if let Err(error) = compare(expected, generated) {
         panic!("{error}");
-    }
-}
-
-fn next_element<'a>(tokenizer: &mut Tokenizer<'a>) -> Option<Token<'a>> {
-    if let Some(token) = tokenizer.next() {
-        match token {
-            Ok(token) => match token {
-                Token::Text { text } => {
-                    if cleanup_text(text.as_str()).is_empty() {
-                        next_element(tokenizer)
-                    } else {
-                        Some(token)
-                    }
-                }
-                _ => Some(token),
-            },
-            Err(err) => {
-                panic!("unable to get token: {err:?}");
-            }
-        }
-    } else {
-        None
     }
 }
 
@@ -727,5 +520,26 @@ mod tests {
         </style>
     </head>
 </html>"#).unwrap_err();
+    }
+
+    #[test]
+    fn with_empty_head_style() {
+        compare(
+            r#"<!doctype html>
+<html>
+    <head>
+        <title></title>
+        <style type="text/css">
+        </style>
+    </head>
+</html>"#,
+            r#"<!doctype html>
+<html>
+    <head>
+        <title></title>
+    </head>
+</html>"#,
+        )
+        .expect("should be equal");
     }
 }
