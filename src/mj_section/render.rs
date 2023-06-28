@@ -226,9 +226,9 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
         let vtextbox = Tag::new("v:textbox")
             .add_attribute("inset", "0,0,0,0")
             .add_style("mso-fit-shape-to-text", "true");
-        let before = conditional_tag(vrect.open() + &vfill.closed() + &vtextbox.open());
-        let after = conditional_tag(vtextbox.close() + &vrect.close());
-        before + content.as_ref() + &after
+        let before = vrect.open() + &vfill.closed() + &vtextbox.open();
+        let after = vtextbox.close() + &vrect.close();
+        before + END_CONDITIONAL_TAG + content.as_ref() + START_CONDITIONAL_TAG + &after
     }
 
     fn set_style_section_div(&self, tag: Tag) -> Tag {
@@ -265,9 +265,9 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
             .add_style("line-height", "0px")
             .add_style("font-size", "0px")
             .add_style("mso-line-height-rule", "exactly");
-        let before = conditional_tag(table.open() + &tr.open() + &td.open());
-        let after = conditional_tag(td.close() + &tr.close() + &table.close());
-        before + content.as_ref() + &after
+        let before = table.open() + &tr.open() + &td.open();
+        let after = td.close() + &tr.close() + &table.close();
+        conditional_tag(before + content.as_ref() + &after)
     }
 
     fn get_siblings(&self) -> usize {
@@ -368,7 +368,6 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
         let inner_table = Tag::table_presentation();
 
         let content = self.render_wrapped_children(opts)?;
-        // HERE
         let content =
             conditional_tag(inner_table.open() + &content + &inner_table.close());
         let content = td.render(content);
@@ -399,12 +398,14 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
             .maybe_add_attribute("background", self.attribute("background-url"))
     }
 
+    // HERE
     fn render_full_width(&self, opts: &Options) -> Result<String, Error> {
         let table = self.get_full_width_table();
         let tbody = Tag::tbody();
         let tr = Tag::tr();
         let td = Tag::td();
-        let content = self.render_wrap(self.render_section(opts)?);
+        let content = self.render_section(opts)?;
+        let content = self.render_wrap(END_CONDITIONAL_TAG.to_string() + &content + START_CONDITIONAL_TAG);
         let content = if self.has_background() {
             self.render_with_background(content)
         } else {
@@ -419,7 +420,7 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
         let section = if self.has_background() {
             self.render_with_background(section)
         } else {
-            section
+            END_CONDITIONAL_TAG.to_string() + &section + START_CONDITIONAL_TAG
         };
         Ok(self.render_wrap(section))
     }
