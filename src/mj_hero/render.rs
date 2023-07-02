@@ -199,6 +199,7 @@ impl<'e, 'h> MjHeroRender<'e, 'h> {
         let height = height - padding;
         let td = self
             .set_style_hero(Tag::td())
+            .add_style("height", format!("{height}px"))
             .maybe_add_attribute("background", self.attribute("background-url"))
             .add_attribute("height", height.to_string());
         Ok(td.render(self.render_content(opts)?))
