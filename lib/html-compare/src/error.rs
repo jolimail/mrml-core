@@ -110,7 +110,7 @@ const SUBSET_GAP: usize = 150;
 
 impl<'a> std::fmt::Display for Error<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.kind {
+        match &self.kind {
             ErrorKind::ElementMismatch {
                 expected,
                 generated,
@@ -137,15 +137,34 @@ impl<'a> std::fmt::Display for Error<'a> {
             } => {
                 writeln!(f, "= Element mismatch")?;
                 writeln!(f, "== Expected result")?;
-                writeln!(f, "{}", display_subset(self.expected, expected, SUBSET_GAP))?;
+                writeln!(f, "{}", display_subset(self.expected, *expected, SUBSET_GAP))?;
                 writeln!(f, "")?;
                 writeln!(f, "== Generated result")?;
                 writeln!(
                     f,
                     "{}",
-                    display_subset(self.generated, generated, SUBSET_GAP)
+                    display_subset(self.generated, *generated, SUBSET_GAP)
                 )?;
                 writeln!(f, "")?;
+            }
+            ErrorKind::ExpectedStylesNotFound {
+                expected,
+                generated,
+                difference,
+            } => {
+                writeln!(f, "= Element mismatch")?;
+                writeln!(f, "== Expected result")?;
+                writeln!(f, "{}", display_subset(self.expected, *expected, SUBSET_GAP))?;
+                writeln!(f, "")?;
+                writeln!(f, "== Generated result")?;
+                writeln!(
+                    f,
+                    "{}",
+                    display_subset(self.generated, *generated, SUBSET_GAP)
+                )?;
+                writeln!(f, "")?;
+                writeln!(f, "== Problem")?;
+                writeln!(f, "Missing {difference:?}")?;
             }
             _ => {
                 writeln!(f, "{:?}", self.kind)?;
