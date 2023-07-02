@@ -168,6 +168,7 @@ impl<'e, 'h> Render<'h> for MjSocialElementRender<'e, 'h> {
             "padding" => Some("4px"),
             "target" => Some("_blank"),
             "text-decoration" => Some("none"),
+            "text-padding" => Some("4px 4px 4px 0"),
             "vertical-align" => Some("middle"),
             _ => None,
         }
