@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 colored = "2.0"
+css-compare = { path = "../css-compare" }
 similar-asserts = "1.4"
 htmlparser = "0.1"

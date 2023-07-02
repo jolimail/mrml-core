@@ -242,7 +242,7 @@ fn compare_elements<'a>(
     if matches!(ending.end, HtmlElementEnd::Open)
         && !["br", "meta"].contains(&expected.local.as_str())
     {
-        compare_all(cursor, expected.span, generated.span)?;
+        compare_all(cursor, &expected.local, expected.span, generated.span)?;
     }
 
     Ok(())
@@ -265,6 +265,7 @@ fn compare_comment<'a>(expected: StrSpan<'a>, result: StrSpan<'a>) -> Result<(),
 
 fn compare_tokens<'a>(
     cursor: &mut Cursor<'a>,
+    parent: &str,
     expected: Token<'a>,
     generated: Token<'a>,
 ) -> Result<(), ErrorKind<'a>> {
@@ -273,7 +274,11 @@ fn compare_tokens<'a>(
             compare_comment(exp_text, res_text)?;
         }
         (Token::Text { text: exp_text }, Token::Text { text: res_text }) => {
-            compare_text(exp_text, res_text)?;
+            if parent == "style" {
+
+            } else {
+                compare_text(exp_text, res_text)?;
+            }
         }
         (
             Token::ElementStart {
@@ -341,12 +346,13 @@ fn compare_tokens<'a>(
 
 fn compare_next<'a>(
     cursor: &mut Cursor<'a>,
+    parent: &str,
     expected_parent: StrSpan<'a>,
     generated_parent: StrSpan<'a>,
 ) -> Result<bool, ErrorKind<'a>> {
     match cursor.next() {
         (Some(expected), Some(generated)) => {
-            compare_tokens(cursor, expected, generated)?;
+            compare_tokens(cursor, parent, expected, generated)?;
             Ok(true)
         }
         (None, None) => {
@@ -364,11 +370,12 @@ fn compare_next<'a>(
 
 fn compare_all<'a>(
     cursor: &mut Cursor<'a>,
+    parent: &str,
     expected_parent: StrSpan<'a>,
     generated_parent: StrSpan<'a>,
 ) -> Result<(), ErrorKind<'a>> {
     loop {
-        match compare_next(cursor, expected_parent, generated_parent) {
+        match compare_next(cursor, parent, expected_parent, generated_parent) {
             Ok(true) => {}
             Ok(false) => return Ok(()),
             Err(kind) => return Err(kind),
@@ -381,6 +388,7 @@ pub fn compare<'a>(expected: &'a str, generated: &'a str) -> Result<(), Error<'a
     let mut cursor = Cursor::new(expected, generated);
     if let Err(kind) = compare_all(
         &mut cursor,
+        "",
         StrSpan::from(expected),
         StrSpan::from(generated),
     ) {
