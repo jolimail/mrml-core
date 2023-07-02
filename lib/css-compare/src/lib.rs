@@ -13,6 +13,7 @@ pub enum Error<'a> {
     MissingStyleProperties { path: String, rules: Vec<String> },
     UnexpectedProperties { path: String, rules: Vec<String> },
     MismatchRules { expected: String, generated: String },
+    MismatchImports { expected: String, generated: String },
     MissingRules { path: String, rules: Vec<String> },
     UnexpectedRules { path: String, rules: Vec<String> },
 }
@@ -33,7 +34,8 @@ fn css_rule_as_key<'a, R: std::fmt::Debug + std::cmp::PartialEq>(rule: &CssRule<
                 .collect::<Vec<_>>()
                 .join(", "),
         ),
-        _others => todo!("css_rule_as_key"),
+        CssRule::Import(inner) => format!("import({})", inner.url),
+        others => todo!("css_rule_as_key {others:?}"),
     }
 }
 
@@ -100,6 +102,11 @@ fn compare_rule<'a, R: std::fmt::Debug + std::cmp::PartialEq>(
         }
         (CssRule::Style(exp), CssRule::Style(gen)) => {
             compare_style(path, exp, gen)?;
+        }
+        (CssRule::Import(exp), CssRule::Import(gen)) => {
+            if exp.url != gen.url {
+                return Err(Error::MismatchImports { expected: exp.url.to_string(), generated: gen.url.to_string() });
+            }
         }
         (exp, gen) => {
             return Err(Error::MismatchRules {
