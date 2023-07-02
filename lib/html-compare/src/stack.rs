@@ -97,8 +97,31 @@ impl<'a> TokenStack<'a> {
         Self { inner }
     }
 
+    fn sanitize_close_and_open_condition(mut self) -> Self {
+        let mut inner = VecDeque::with_capacity(self.inner.len());
+        while let Some(token) = self.inner.pop_front() {
+            if matches!(token, Token::ConditionalCommentEnd { .. }) {
+                if let Some(next) = self.inner.pop_front() {
+                    if matches!(next, Token::ConditionalCommentStart { .. }) {
+                        // don't push it back
+                    } else {
+                        self.inner.push_front(next);
+                        inner.push_back(token);
+                    }
+                } else {
+                    inner.push_back(token);
+                }
+            } else {
+                inner.push_back(token);
+            }
+        }
+        Self { inner }
+    }
+
     pub fn sanitize(self) -> Self {
-        self.sanitize_text().sanitize_empty_head_style()
+        self.sanitize_text()
+            .sanitize_close_and_open_condition()
+            .sanitize_empty_head_style()
     }
 
     pub fn next(&mut self) -> Option<Token<'a>> {
@@ -113,6 +136,26 @@ impl<'a> TokenStack<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn remove_duplication_conditions() {
+        let expected =
+            TokenStack::parse("<br><!--[if mso | IE]></td><![endif]--><!--[if mso | IE]></tr>").sanitize();
+        let result = TokenStack::parse("<br><!--[if mso | IE]></td></tr>");
+        assert_eq!(
+            expected
+                .inner
+                .into_iter()
+                .map(|token| token.span().as_str())
+                .collect::<Vec<_>>(),
+            result
+                .sanitize()
+                .inner
+                .into_iter()
+                .map(|token| token.span().as_str())
+                .collect::<Vec<_>>()
+        );
+    }
 
     #[test]
     fn remove_head_style() {

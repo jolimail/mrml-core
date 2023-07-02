@@ -74,6 +74,11 @@ pub enum ErrorKind<'a> {
         expected: StrSpan<'a>,
         generated: StrSpan<'a>,
     },
+    CssMismatch {
+        expected: StrSpan<'a>,
+        generated: StrSpan<'a>,
+        error: css_compare::Error<'a>,
+    }
 }
 
 impl<'a> ErrorKind<'a> {

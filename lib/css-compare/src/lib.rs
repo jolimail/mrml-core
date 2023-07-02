@@ -43,7 +43,6 @@ fn compare_style_properties<'a>(
     gen: &[Property<'a>],
     important: bool,
 ) -> Result<(), Error<'a>> {
-    println!("compare_style_properties({path:?})");
     let exp_props = exp
         .iter()
         .map(|p| p.to_css_string(important, PrinterOptions::default()).unwrap())
@@ -85,7 +84,6 @@ fn compare_style<'a, R: std::fmt::Debug + std::cmp::PartialEq>(
     exp: StyleRule<'a, R>,
     gen: StyleRule<'a, R>,
 ) -> Result<(), Error<'a>> {
-    println!("compare_style({path:?})");
     compare_style_properties(path, &exp.declarations.declarations, &gen.declarations.declarations, false)?;
     compare_style_properties(path, &exp.declarations.important_declarations, &gen.declarations.important_declarations, true)?;
     Ok(())
@@ -96,7 +94,6 @@ fn compare_rule<'a, R: std::fmt::Debug + std::cmp::PartialEq>(
     exp: CssRule<'a, R>,
     gen: CssRule<'a, R>,
 ) -> Result<(), Error<'a>> {
-    println!("compare_rule({path:?})");
     match (exp, gen) {
         (CssRule::Media(exp), CssRule::Media(gen)) => {
             compare_rules(path, exp.rules.0, gen.rules.0)?;
@@ -119,7 +116,6 @@ fn compare_rules<'a, R: std::fmt::Debug + std::cmp::PartialEq>(
     exps: Vec<CssRule<'a, R>>,
     gens: Vec<CssRule<'a, R>>,
 ) -> Result<(), Error<'a>> {
-    println!("compare_rules({path:?})");
     let exp_map = exps
         .into_iter()
         .map(|item| (css_rule_as_key(&item), item))
