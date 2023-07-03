@@ -99,20 +99,30 @@ impl<'a> TokenStack<'a> {
 
     fn sanitize_close_and_open_condition(mut self) -> Self {
         let mut inner = VecDeque::with_capacity(self.inner.len());
+        let mut previous_condition = None;
         while let Some(token) = self.inner.pop_front() {
-            if matches!(token, Token::ConditionalCommentEnd { .. }) {
-                if let Some(next) = self.inner.pop_front() {
-                    if matches!(next, Token::ConditionalCommentStart { .. }) {
-                        // don't push it back
-                    } else {
-                        self.inner.push_front(next);
-                        inner.push_back(token);
-                    }
-                } else {
+            match token {
+                Token::ConditionalCommentStart { condition, .. } => {
+                    previous_condition = Some(condition.as_str());
                     inner.push_back(token);
                 }
-            } else {
-                inner.push_back(token);
+                Token::ConditionalCommentEnd { .. } => {
+                    match self.inner.pop_front() {
+                        Some(Token::ConditionalCommentStart { condition, .. }) if Some(condition.as_str()) == previous_condition => {
+                            // do nothing
+                        }
+                        Some(next) => {
+                            self.inner.push_front(next);
+                            inner.push_back(token);
+                        }
+                        None => {
+                            inner.push_back(token);
+                        }
+                    }
+                }
+                other => {
+                    inner.push_back(other);
+                }
             }
         }
         Self { inner }
@@ -140,7 +150,8 @@ mod tests {
     #[test]
     fn remove_duplication_conditions() {
         let expected =
-            TokenStack::parse("<br><!--[if mso | IE]></td><![endif]--><!--[if mso | IE]></tr>").sanitize();
+            TokenStack::parse("<br><!--[if mso | IE]></td><![endif]--><!--[if mso | IE]></tr>")
+                .sanitize();
         let result = TokenStack::parse("<br><!--[if mso | IE]></td></tr>");
         assert_eq!(
             expected
@@ -150,6 +161,29 @@ mod tests {
                 .collect::<Vec<_>>(),
             result
                 .sanitize()
+                .inner
+                .into_iter()
+                .map(|token| token.span().as_str())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn keep_different_conditions() {
+        let expected = TokenStack::parse(
+            "<first><!--[if mso]><second><![endif]--><!--[if lte mso 11]></third><![endif]-->",
+        )
+        .sanitize();
+        let result = TokenStack::parse(
+            "<first><!--[if mso]><second><![endif]--><!--[if lte mso 11]></third><![endif]-->",
+        );
+        assert_eq!(
+            expected
+                .inner
+                .into_iter()
+                .map(|token| token.span().as_str())
+                .collect::<Vec<_>>(),
+            result
                 .inner
                 .into_iter()
                 .map(|token| token.span().as_str())

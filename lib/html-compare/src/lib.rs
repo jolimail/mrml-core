@@ -152,7 +152,11 @@ fn compare_attr_styles<'a>(
     Ok(())
 }
 
-fn compare_attributes<'a>(cursor: &mut Cursor<'a>, expected: ElementStart<'a>, generated: ElementStart<'a>) -> Result<ElementEnd<'a>, ErrorKind<'a>> {
+fn compare_attributes<'a>(
+    cursor: &mut Cursor<'a>,
+    expected: ElementStart<'a>,
+    generated: ElementStart<'a>,
+) -> Result<ElementEnd<'a>, ErrorKind<'a>> {
     let ((exp_attrs, exp_end), (gen_attrs, gen_end)) = cursor.next_attributes();
 
     if !exp_end.end.eq(&gen_end.end) {
@@ -419,6 +423,14 @@ pub fn assert_similar(expected: &str, generated: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn should_be_equal() {
+        assert_similar(
+            include_str!("../resources/expected.html"),
+            include_str!("../resources/generated.html"),
+        );
+    }
 
     #[test]
     fn simple_same_classes() {
