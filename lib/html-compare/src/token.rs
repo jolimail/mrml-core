@@ -33,7 +33,7 @@ impl<'a> Attribute<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ElementStart<'a> {
     pub prefix: StrSpan<'a>,
     pub local: StrSpan<'a>,

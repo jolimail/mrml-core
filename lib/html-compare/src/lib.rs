@@ -152,7 +152,7 @@ fn compare_attr_styles<'a>(
     Ok(())
 }
 
-fn compare_attributes<'a>(cursor: &mut Cursor<'a>) -> Result<ElementEnd<'a>, ErrorKind<'a>> {
+fn compare_attributes<'a>(cursor: &mut Cursor<'a>, expected: ElementStart<'a>, generated: ElementStart<'a>) -> Result<ElementEnd<'a>, ErrorKind<'a>> {
     let ((exp_attrs, exp_end), (gen_attrs, gen_end)) = cursor.next_attributes();
 
     if !exp_end.end.eq(&gen_end.end) {
@@ -183,8 +183,10 @@ fn compare_attributes<'a>(cursor: &mut Cursor<'a>) -> Result<ElementEnd<'a>, Err
         .collect::<Vec<_>>();
     if !diff.is_empty() {
         return Err(ErrorKind::ExpectedAttributesNotFound {
-            expected: exp_attrs,
-            generated: gen_attrs,
+            expected,
+            generated,
+            expected_attributes: exp_attrs,
+            generated_attributes: gen_attrs,
             difference: diff,
         });
     }
@@ -237,7 +239,7 @@ fn compare_elements<'a>(
         });
     }
 
-    let ending = compare_attributes(cursor)?;
+    let ending = compare_attributes(cursor, expected.clone(), generated.clone())?;
 
     if matches!(ending.end, HtmlElementEnd::Open)
         && !["br", "meta"].contains(&expected.local.as_str())

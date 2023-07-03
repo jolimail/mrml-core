@@ -26,8 +26,10 @@ pub enum ErrorKind<'a> {
         generated: ElementStart<'a>,
     },
     ExpectedAttributesNotFound {
-        expected: Vec<Attribute<'a>>,
-        generated: Vec<Attribute<'a>>,
+        expected: ElementStart<'a>,
+        generated: ElementStart<'a>,
+        expected_attributes: Vec<Attribute<'a>>,
+        generated_attributes: Vec<Attribute<'a>>,
         difference: Vec<StrSpan<'a>>,
     },
     UnexpectedAttributesFound(Vec<StrSpan<'a>>),
@@ -78,7 +80,7 @@ pub enum ErrorKind<'a> {
         expected: StrSpan<'a>,
         generated: StrSpan<'a>,
         error: css_compare::Error<'a>,
-    }
+    },
 }
 
 impl<'a> ErrorKind<'a> {
@@ -95,14 +97,14 @@ pub struct Error<'a> {
     pub kind: ErrorKind<'a>,
 }
 
-fn display_subset<'a>(data: &str, span: StrSpan<'a>, gap: usize) -> String {
-    let start = span.start().checked_sub(gap).unwrap_or(0);
-    let end = usize::min(span.end() + gap, data.len());
+fn display_subset<'a>(data: &str, span_start: usize, span_end: usize, gap: usize) -> String {
+    let start = span_start.checked_sub(gap).unwrap_or(0);
+    let end = usize::min(span_end + gap, data.len());
     format!(
         "{}{}{}",
-        &data[start..span.start()],
-        data[span.start()..span.end()].red().bold(),
-        &data[span.end()..end]
+        &data[start..span_start],
+        data[span_start..span_end].red().bold(),
+        &data[span_end..end]
     )
 }
 
@@ -120,14 +122,24 @@ impl<'a> std::fmt::Display for Error<'a> {
                 writeln!(
                     f,
                     "{}",
-                    display_subset(self.expected, expected.span(), SUBSET_GAP)
+                    display_subset(
+                        self.expected,
+                        expected.span().start(),
+                        expected.span().end(),
+                        SUBSET_GAP
+                    )
                 )?;
                 writeln!(f, "")?;
                 writeln!(f, "== Generated result")?;
                 writeln!(
                     f,
                     "{}",
-                    display_subset(self.generated, generated.span(), SUBSET_GAP)
+                    display_subset(
+                        self.generated,
+                        generated.span().start(),
+                        generated.span().end(),
+                        SUBSET_GAP
+                    )
                 )?;
                 writeln!(f, "")?;
             }
@@ -137,13 +149,22 @@ impl<'a> std::fmt::Display for Error<'a> {
             } => {
                 writeln!(f, "= Element mismatch")?;
                 writeln!(f, "== Expected result")?;
-                writeln!(f, "{}", display_subset(self.expected, *expected, SUBSET_GAP))?;
+                writeln!(
+                    f,
+                    "{}",
+                    display_subset(self.expected, expected.start(), expected.end(), SUBSET_GAP)
+                )?;
                 writeln!(f, "")?;
                 writeln!(f, "== Generated result")?;
                 writeln!(
                     f,
                     "{}",
-                    display_subset(self.generated, *generated, SUBSET_GAP)
+                    display_subset(
+                        self.generated,
+                        generated.start(),
+                        generated.end(),
+                        SUBSET_GAP
+                    )
                 )?;
                 writeln!(f, "")?;
             }
@@ -154,17 +175,91 @@ impl<'a> std::fmt::Display for Error<'a> {
             } => {
                 writeln!(f, "= Element mismatch")?;
                 writeln!(f, "== Expected result")?;
-                writeln!(f, "{}", display_subset(self.expected, *expected, SUBSET_GAP))?;
+                writeln!(
+                    f,
+                    "{}",
+                    display_subset(self.expected, expected.start(), expected.end(), SUBSET_GAP)
+                )?;
                 writeln!(f, "")?;
                 writeln!(f, "== Generated result")?;
                 writeln!(
                     f,
                     "{}",
-                    display_subset(self.generated, *generated, SUBSET_GAP)
+                    display_subset(
+                        self.generated,
+                        generated.start(),
+                        generated.end(),
+                        SUBSET_GAP
+                    )
                 )?;
                 writeln!(f, "")?;
                 writeln!(f, "== Problem")?;
                 writeln!(f, "Missing {difference:?}")?;
+            }
+            ErrorKind::ExpectedAttributesNotFound {
+                expected,
+                generated,
+                expected_attributes,
+                generated_attributes,
+                difference,
+            } => {
+                writeln!(f, "= Element mismatch")?;
+                writeln!(f, "== Expected result")?;
+                let span_start = expected.span.end();
+                let span_end = expected_attributes
+                    .iter()
+                    .map(|attr| attr.value.end())
+                    .max()
+                    .unwrap_or(span_start);
+                writeln!(
+                    f,
+                    "{}",
+                    display_subset(self.expected, span_start, span_end, SUBSET_GAP)
+                )?;
+                writeln!(f, "")?;
+                writeln!(f, "== Generated result")?;
+                let span_start = generated.span.end();
+                let span_end = generated_attributes
+                    .iter()
+                    .map(|attr| attr.value.end())
+                    .max()
+                    .unwrap_or(span_start);
+                writeln!(
+                    f,
+                    "{}",
+                    display_subset(self.generated, span_start, span_end, SUBSET_GAP)
+                )?;
+                writeln!(f, "")?;
+                writeln!(f, "== Problem")?;
+                writeln!(f, "Missing {difference:?}")?;
+            }
+            ErrorKind::CssMismatch {
+                expected,
+                generated,
+                error,
+            } => {
+                writeln!(f, "= Element mismatch")?;
+                writeln!(f, "== Expected result")?;
+                writeln!(
+                    f,
+                    "{}",
+                    display_subset(self.expected, expected.start(), expected.end(), SUBSET_GAP)
+                )?;
+                writeln!(f, "")?;
+                writeln!(f, "== Generated result")?;
+                writeln!(
+                    f,
+                    "{}",
+                    display_subset(
+                        self.generated,
+                        generated.start(),
+                        generated.end(),
+                        SUBSET_GAP
+                    )
+                )?;
+                writeln!(f, "")?;
+                writeln!(f, "== Problem")?;
+                writeln!(f, "Missing {error:?}")?;
             }
             _ => {
                 writeln!(f, "{:?}", self.kind)?;
