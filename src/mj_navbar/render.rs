@@ -120,7 +120,7 @@ impl<'e, 'h> MjNavbarRender<'e, 'h> {
           .mj-menu-checkbox[type="checkbox"]:checked ~ .mj-menu-trigger .mj-menu-icon-open {{ display:none!important; }}
         }}
         "#,
-            self.header.borrow().breakpoint().to_string()
+            self.header.borrow().breakpoint().lower().to_string()
         );
         self.header.borrow_mut().add_style(style);
     }
