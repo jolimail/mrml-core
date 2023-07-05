@@ -368,7 +368,7 @@ impl<'e, 'h> MjCarouselRender<'e, 'h> {
 
         style.push(format!(
             r#"
-        @media screen yahoo {{
+        @media screen, yahoo {{
             .mj-carousel-{}-icons-cell,
             .mj-carousel-previous-icons,
             .mj-carousel-next-icons {{

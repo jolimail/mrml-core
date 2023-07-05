@@ -2,9 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 use lightningcss::{
     error::{Error as CssError, ParserError},
+    properties::Property,
     rules::{style::StyleRule, CssRule},
     stylesheet::{ParserOptions, PrinterOptions, StyleSheet},
-    traits::ToCss, properties::Property,
+    traits::ToCss,
 };
 
 #[derive(Debug)]
@@ -47,11 +48,17 @@ fn compare_style_properties<'a>(
 ) -> Result<(), Error<'a>> {
     let exp_props = exp
         .iter()
-        .map(|p| p.to_css_string(important, PrinterOptions::default()).unwrap())
+        .map(|p| {
+            p.to_css_string(important, PrinterOptions::default())
+                .unwrap()
+        })
         .collect::<HashSet<_>>();
     let gen_props = gen
         .iter()
-        .map(|p| p.to_css_string(important, PrinterOptions::default()).unwrap())
+        .map(|p| {
+            p.to_css_string(important, PrinterOptions::default())
+                .unwrap()
+        })
         .collect::<HashSet<_>>();
 
     let diff = exp_props
@@ -86,8 +93,18 @@ fn compare_style<'a, R: std::fmt::Debug + std::cmp::PartialEq>(
     exp: StyleRule<'a, R>,
     gen: StyleRule<'a, R>,
 ) -> Result<(), Error<'a>> {
-    compare_style_properties(path, &exp.declarations.declarations, &gen.declarations.declarations, false)?;
-    compare_style_properties(path, &exp.declarations.important_declarations, &gen.declarations.important_declarations, true)?;
+    compare_style_properties(
+        path,
+        &exp.declarations.declarations,
+        &gen.declarations.declarations,
+        false,
+    )?;
+    compare_style_properties(
+        path,
+        &exp.declarations.important_declarations,
+        &gen.declarations.important_declarations,
+        true,
+    )?;
     Ok(())
 }
 
@@ -105,7 +122,10 @@ fn compare_rule<'a, R: std::fmt::Debug + std::cmp::PartialEq>(
         }
         (CssRule::Import(exp), CssRule::Import(gen)) => {
             if exp.url != gen.url {
-                return Err(Error::MismatchImports { expected: exp.url.to_string(), generated: gen.url.to_string() });
+                return Err(Error::MismatchImports {
+                    expected: exp.url.to_string(),
+                    generated: gen.url.to_string(),
+                });
             }
         }
         (exp, gen) => {
@@ -189,21 +209,47 @@ pub fn compare<'a>(expected: &'a str, generated: &'a str) -> Result<(), Error<'a
 
 #[cfg(test)]
 mod tests {
-    const EXPECTED: &str = r#"@media only screen and (min-width:480px) {
-    .mj-column-per-50 {
-        width: 50% !important;
-        max-width: 50%;
-    }
+    #[test]
+    fn with_media() {
+        let expected = r#"@media only screen and (min-width:480px) {
+        .mj-column-per-50 {
+            width: 50% !important;
+            max-width: 50%;
+        }
+    
+        .mj-column-per-33-333332 {
+            width: 33.333332% !important;
+            max-width: 33.333332%;
+        }
+    }"#;
+        let generated = "@media only screen and (min-width:480px) { .mj-column-per-33-333332 { width:33.333332% !important; max-width:33.333332%; } .mj-column-per-50 { width:50% !important; max-width:50%; }}";
 
-    .mj-column-per-33-333332 {
-        width: 33.333332% !important;
-        max-width: 33.333332%;
+        super::compare(expected, generated).unwrap();
     }
-}"#;
-    const GENERATED: &str = "@media only screen and (min-width:480px) { .mj-column-per-33-333332 { width:33.333332% !important; max-width:33.333332%; } .mj-column-per-50 { width:50% !important; max-width:50%; }}";
 
     #[test]
-    fn with_lightningcss() {
-        super::compare(EXPECTED, GENERATED).unwrap();
+    fn with_media_yahoo() {
+        let expected = r#"@media screen, yahoo {
+    .mj-carousel-aaaaaaaa-icons-cell,
+    .mj-carousel-previous-icons,
+    .mj-carousel-next-icons {
+        display: none !important;
+    }
+    .mj-carousel-aaaaaaaa-radio-1:checked+*+*+.mj-carousel-content .mj-carousel-aaaaaaaa-thumbnail-1 {
+        border-color: transparent;
+    }
+}"#;
+        let generated = r#"@media screen, yahoo {
+        .mj-carousel-aaaaaaaa-icons-cell,
+        .mj-carousel-previous-icons,
+        .mj-carousel-next-icons {
+            display: none !important;
+        }
+        .mj-carousel-aaaaaaaa-radio-1:checked+*+*+.mj-carousel-content .mj-carousel-aaaaaaaa-thumbnail-1 {
+            border-color: transparent;
+        }
+    }"#;
+
+        super::compare(expected, generated).unwrap();
     }
 }
