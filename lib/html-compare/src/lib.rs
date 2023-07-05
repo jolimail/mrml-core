@@ -10,9 +10,7 @@ use htmlparser::{ElementEnd as HtmlElementEnd, StrSpan, Token};
 use std::collections::{BTreeMap, BTreeSet};
 
 struct Cursor<'a> {
-    // expected_str: &'a str,
     expected: crate::stack::TokenStack<'a>,
-    // generated_str: &'a str,
     generated: crate::stack::TokenStack<'a>,
 }
 

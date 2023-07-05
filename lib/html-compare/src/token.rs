@@ -1,4 +1,4 @@
-use htmlparser::{StrSpan, Token};
+use htmlparser::StrSpan;
 
 #[derive(Clone, Debug)]
 pub struct Attribute<'a> {
@@ -9,11 +9,13 @@ pub struct Attribute<'a> {
 }
 
 impl<'a> Attribute<'a> {
-    pub fn parse_all(stack: &mut crate::stack::TokenStack<'a>) -> (Vec<Attribute<'a>>, ElementEnd<'a>) {
+    pub fn parse_all(
+        stack: &mut crate::stack::TokenStack<'a>,
+    ) -> (Vec<Attribute<'a>>, ElementEnd<'a>) {
         let mut result = Vec::new();
         loop {
             match stack.next() {
-                Some(Token::Attribute {
+                Some(htmlparser::Token::Attribute {
                     prefix,
                     local,
                     value,
@@ -26,7 +28,9 @@ impl<'a> Attribute<'a> {
                         span,
                     });
                 }
-                Some(Token::ElementEnd { end, span }) => return (result, ElementEnd { end, span }),
+                Some(htmlparser::Token::ElementEnd { end, span }) => {
+                    return (result, ElementEnd { end, span })
+                }
                 _ => panic!("invalid token in attributes"),
             }
         }

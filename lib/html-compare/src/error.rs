@@ -147,7 +147,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                 expected,
                 generated,
             } => {
-                writeln!(f, "= Element mismatch")?;
+                writeln!(f, "= Text mismatch")?;
                 writeln!(f, "== Expected result")?;
                 writeln!(
                     f,
@@ -173,7 +173,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                 generated,
                 difference,
             } => {
-                writeln!(f, "= Element mismatch")?;
+                writeln!(f, "= Expected styles not found")?;
                 writeln!(f, "== Expected result")?;
                 writeln!(
                     f,
@@ -203,7 +203,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                 generated_attributes,
                 difference,
             } => {
-                writeln!(f, "= Element mismatch")?;
+                writeln!(f, "= Expected attributes not found")?;
                 writeln!(f, "== Expected result")?;
                 let span_start = expected.span.end();
                 let span_end = expected_attributes
@@ -238,7 +238,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                 generated,
                 error,
             } => {
-                writeln!(f, "= Element mismatch")?;
+                writeln!(f, "= CSS mismatch")?;
                 writeln!(f, "== Expected result")?;
                 writeln!(
                     f,
