@@ -127,7 +127,7 @@ impl<'e, 'h> MjImageRender<'e, 'h> {
                 td.mj-full-width-mobile {{ width: auto !important; }}
             }}
             "#,
-            self.header.borrow().breakpoint().to_string(),
+            self.header.borrow().breakpoint().lower().to_string(),
         )
     }
 }
@@ -196,7 +196,7 @@ impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjImage {
 
 #[cfg(test)]
 mod tests {
-    
+
     use crate::mjml::Mjml;
     use crate::prelude::render::Options;
 
