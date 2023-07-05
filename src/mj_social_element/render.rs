@@ -72,6 +72,10 @@ impl<'e, 'h> MjSocialElementRender<'e, 'h> {
 
     fn set_style_td(&self, tag: Tag) -> Tag {
         tag.maybe_add_style("padding", self.attribute("padding"))
+            .maybe_add_style("padding-top", self.attribute("padding-top"))
+            .maybe_add_style("padding-right", self.attribute("padding-right"))
+            .maybe_add_style("padding-bottom", self.attribute("padding-bottom"))
+            .maybe_add_style("padding-left", self.attribute("padding-left"))
             .maybe_add_style("vertical-align", self.attribute("vertical-align"))
     }
 
