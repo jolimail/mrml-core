@@ -97,8 +97,8 @@ pub struct Error<'a> {
     pub kind: ErrorKind<'a>,
 }
 
-fn display_subset<'a>(data: &str, span_start: usize, span_end: usize, gap: usize) -> String {
-    let start = span_start.checked_sub(gap).unwrap_or(0);
+fn display_subset(data: &str, span_start: usize, span_end: usize, gap: usize) -> String {
+    let start = span_start.saturating_sub(gap);
     let end = usize::min(span_end + gap, data.len());
     format!(
         "{}{}{}",
@@ -129,7 +129,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                         SUBSET_GAP
                     )
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 writeln!(f, "== Generated result")?;
                 writeln!(
                     f,
@@ -141,7 +141,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                         SUBSET_GAP
                     )
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
             }
             ErrorKind::TextMismatch {
                 expected,
@@ -154,7 +154,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                     "{}",
                     display_subset(self.expected, expected.start(), expected.end(), SUBSET_GAP)
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 writeln!(f, "== Generated result")?;
                 writeln!(
                     f,
@@ -166,7 +166,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                         SUBSET_GAP
                     )
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
             }
             ErrorKind::ExpectedStylesNotFound {
                 expected,
@@ -180,7 +180,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                     "{}",
                     display_subset(self.expected, expected.start(), expected.end(), SUBSET_GAP)
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 writeln!(f, "== Generated result")?;
                 writeln!(
                     f,
@@ -192,7 +192,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                         SUBSET_GAP
                     )
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 writeln!(f, "== Problem")?;
                 writeln!(f, "Missing {difference:?}")?;
             }
@@ -216,7 +216,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                     "{}",
                     display_subset(self.expected, span_start, span_end, SUBSET_GAP)
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 writeln!(f, "== Generated result")?;
                 let span_start = generated.span.end();
                 let span_end = generated_attributes
@@ -229,7 +229,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                     "{}",
                     display_subset(self.generated, span_start, span_end, SUBSET_GAP)
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 writeln!(f, "== Problem")?;
                 writeln!(f, "Missing {difference:?}")?;
             }
@@ -245,7 +245,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                     "{}",
                     display_subset(self.expected, expected.start(), expected.end(), SUBSET_GAP)
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 writeln!(f, "== Generated result")?;
                 writeln!(
                     f,
@@ -257,7 +257,7 @@ impl<'a> std::fmt::Display for Error<'a> {
                         SUBSET_GAP
                     )
                 )?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 writeln!(f, "== Problem")?;
                 writeln!(f, "Missing {error:?}")?;
             }

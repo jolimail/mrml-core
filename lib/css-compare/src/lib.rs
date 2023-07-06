@@ -53,7 +53,7 @@ pub enum Error<'a> {
     },
 }
 
-fn font_family_as_key<'a>(item: &FontFamily<'a>) -> String {
+fn font_family_as_key(item: &FontFamily<'_>) -> String {
     match item {
         FontFamily::FamilyName(inner) => inner.to_string(),
         FontFamily::Generic(inner) => inner.as_str().to_string(),
@@ -76,7 +76,7 @@ fn oblique_angle_as_key(item: &Angle) -> String {
     item.to_css_string(PrinterOptions::default()).unwrap()
 }
 
-fn font_face_as_key<'a>(item: &FontFaceRule<'a>) -> String {
+fn font_face_as_key(item: &FontFaceRule<'_>) -> String {
     let mut res = String::default();
     if let Some(font_family) = item.properties.iter().find_map(|p| match p {
         FontFaceProperty::FontFamily(inner) => Some(font_family_as_key(inner)),
@@ -84,7 +84,7 @@ fn font_face_as_key<'a>(item: &FontFaceRule<'a>) -> String {
     }) {
         res.push_str("font-family:");
         res.push_str(&font_family);
-        res.push_str(";");
+        res.push(';');
     }
     if let Some(font_weight) = item.properties.iter().find_map(|p| match p {
         FontFaceProperty::FontWeight(inner) => Some(format!(
@@ -96,7 +96,7 @@ fn font_face_as_key<'a>(item: &FontFaceRule<'a>) -> String {
     }) {
         res.push_str("font-weight:");
         res.push_str(&font_weight);
-        res.push_str(";");
+        res.push(';');
     }
     if let Some(font_style) = item.properties.iter().find_map(|p| match p {
         FontFaceProperty::FontStyle(style) => match style {
@@ -112,12 +112,12 @@ fn font_face_as_key<'a>(item: &FontFaceRule<'a>) -> String {
     }) {
         res.push_str("font-style:");
         res.push_str(&font_style);
-        res.push_str(";");
+        res.push(';');
     }
     res
 }
 
-fn css_rule_as_key<'a, R: std::fmt::Debug + std::cmp::PartialEq>(rule: &CssRule<'a, R>) -> String {
+fn css_rule_as_key<R: std::fmt::Debug + std::cmp::PartialEq>(rule: &CssRule<'_, R>) -> String {
     match rule {
         CssRule::Media(media_inner) => format!(
             "media({})",
@@ -135,7 +135,7 @@ fn css_rule_as_key<'a, R: std::fmt::Debug + std::cmp::PartialEq>(rule: &CssRule<
         ),
         CssRule::Import(inner) => format!("import({})", inner.url),
         CssRule::Unknown(inner) => format!("unknown({})", inner.name),
-        CssRule::FontFace(inner) => format!("font-face({})", font_face_as_key(&inner)),
+        CssRule::FontFace(inner) => format!("font-face({})", font_face_as_key(inner)),
         others => todo!("css_rule_as_key {others:?}"),
     }
 }

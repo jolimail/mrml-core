@@ -1,3 +1,5 @@
+#![allow(clippy::result_large_err)]
+
 mod error;
 mod helper;
 mod stack;
@@ -134,15 +136,15 @@ fn compare_attr_styles<'a>(
                     expected,
                     generated,
                     key,
-                    expected_value: *exp_value,
-                    generated_value: *res_value,
+                    expected_value: exp_value,
+                    generated_value: res_value,
                 });
             }
         } else {
             return Err(ErrorKind::ExpectedStyleNotFound {
                 expected,
                 generated,
-                missing: *key,
+                missing: key,
             });
         }
     }
