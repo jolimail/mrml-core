@@ -158,7 +158,7 @@ impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjAccordionChild {
 
 #[cfg(test)]
 mod tests {
-    
+
     use crate::mjml::Mjml;
     use crate::prelude::render::Options;
 

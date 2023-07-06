@@ -215,7 +215,7 @@ impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjNavbar {
 
 #[cfg(test)]
 mod tests {
-    
+
     use crate::mjml::Mjml;
     use crate::prelude::render::Options;
 

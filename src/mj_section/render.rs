@@ -1,5 +1,5 @@
 use super::{MjSection, NAME};
-use crate::helper::condition::{conditional_tag, START_CONDITIONAL_TAG, END_CONDITIONAL_TAG};
+use crate::helper::condition::{conditional_tag, END_CONDITIONAL_TAG, START_CONDITIONAL_TAG};
 use crate::helper::size::{Percent, Pixel};
 use crate::helper::tag::Tag;
 use crate::prelude::hash::Map;
@@ -368,8 +368,7 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
         let inner_table = Tag::table_presentation();
 
         let content = self.render_wrapped_children(opts)?;
-        let content =
-            conditional_tag(inner_table.open() + &content + &inner_table.close());
+        let content = conditional_tag(inner_table.open() + &content + &inner_table.close());
         let content = td.render(content);
         let content = tr.render(content);
         let content = tbody.render(content);
@@ -404,7 +403,8 @@ pub trait SectionLikeRender<'h>: WithMjSectionBackground<'h> {
         let tr = Tag::tr();
         let td = Tag::td();
         let content = self.render_section(opts)?;
-        let content = self.render_wrap(END_CONDITIONAL_TAG.to_string() + &content + START_CONDITIONAL_TAG);
+        let content =
+            self.render_wrap(END_CONDITIONAL_TAG.to_string() + &content + START_CONDITIONAL_TAG);
         let content = if self.has_background() {
             self.render_with_background(content)
         } else {
@@ -497,7 +497,7 @@ impl<'r, 'e: 'r, 'h: 'r> Renderable<'r, 'e, 'h> for MjSection {
 
 #[cfg(test)]
 mod tests {
-    
+
     use crate::mjml::Mjml;
     use crate::prelude::render::Options;
 
