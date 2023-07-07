@@ -1,9 +1,9 @@
-use std::borrow::Cow;
 use crate::prelude::hash::{Map, Set};
+use std::borrow::Cow;
 
 pub struct Tag {
     name: Cow<'static, str>,
-    attributes: Map<String, String>,
+    attributes: Map<Cow<'static, str>, Cow<'static, str>>,
     classes: Set<Cow<'static, str>>,
     // in order to keep the style in the same order the've been added
     styles: Vec<(String, String)>,
@@ -69,12 +69,20 @@ impl Tag {
         }
     }
 
-    pub fn add_attribute<V: ToString>(mut self, name: &str, value: V) -> Self {
-        self.attributes.insert(name.to_string(), value.to_string());
+    pub fn add_attribute<K: Into<Cow<'static, str>>, V: Into<Cow<'static, str>>>(
+        mut self,
+        name: K,
+        value: V,
+    ) -> Self {
+        self.attributes.insert(name.into(), value.into());
         self
     }
 
-    pub fn maybe_add_attribute<T: ToString>(self, name: &str, value: Option<T>) -> Self {
+    pub fn maybe_add_attribute<K: Into<Cow<'static, str>>, V: Into<Cow<'static, str>>>(
+        self,
+        name: K,
+        value: Option<V>,
+    ) -> Self {
         if let Some(value) = value {
             self.add_attribute(name, value)
         } else {
