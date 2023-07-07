@@ -44,7 +44,7 @@ impl<'e, 'h> MjTextRender<'e, 'h> {
         let td = Tag::td()
             .add_attribute("height", height.to_owned())
             .add_style("vertical-align", "top")
-            .add_style("height", height);
+            .add_style("height", height.to_owned());
         Ok(conditional_tag(table.open() + &tr.open() + &td.open())
             + &self.render_content(opts)?
             + &conditional_tag(td.close() + &tr.close() + &table.close()))

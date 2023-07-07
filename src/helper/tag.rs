@@ -6,7 +6,7 @@ pub struct Tag {
     attributes: Map<Cow<'static, str>, Cow<'static, str>>,
     classes: Set<Cow<'static, str>>,
     // in order to keep the style in the same order the've been added
-    styles: Vec<(String, String)>,
+    styles: Vec<(Cow<'static, str>, Cow<'static, str>)>,
 }
 
 impl Tag {
@@ -90,12 +90,20 @@ impl Tag {
         }
     }
 
-    pub fn add_style<T: ToString>(mut self, name: &str, value: T) -> Self {
-        self.styles.push((name.to_string(), value.to_string()));
+    pub fn add_style<N: Into<Cow<'static, str>>, V: Into<Cow<'static, str>>>(
+        mut self,
+        name: N,
+        value: V,
+    ) -> Self {
+        self.styles.push((name.into(), value.into()));
         self
     }
 
-    pub fn maybe_add_style<T: ToString>(self, name: &str, value: Option<T>) -> Self {
+    pub fn maybe_add_style<N: Into<Cow<'static, str>>, V: Into<Cow<'static, str>>>(
+        self,
+        name: N,
+        value: Option<V>,
+    ) -> Self {
         if let Some(value) = value {
             self.add_style(name, value)
         } else {
