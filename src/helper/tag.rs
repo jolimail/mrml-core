@@ -1,7 +1,8 @@
+use std::borrow::Cow;
 use crate::prelude::hash::{Map, Set};
 
 pub struct Tag {
-    name: String,
+    name: Cow<'static, str>,
     attributes: Map<String, String>,
     classes: Set<String>,
     // in order to keep the style in the same order the've been added
@@ -34,9 +35,9 @@ impl Tag {
         Self::new("div")
     }
 
-    pub fn new<T: ToString>(name: T) -> Self {
+    pub fn new<N: Into<Cow<'static, str>>>(name: N) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.into(),
             attributes: Map::new(),
             classes: Set::new(),
             styles: Vec::new(),
