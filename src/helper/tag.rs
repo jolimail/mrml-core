@@ -4,7 +4,7 @@ use crate::prelude::hash::{Map, Set};
 pub struct Tag {
     name: Cow<'static, str>,
     attributes: Map<String, String>,
-    classes: Set<String>,
+    classes: Set<Cow<'static, str>>,
     // in order to keep the style in the same order the've been added
     styles: Vec<(String, String)>,
 }
@@ -44,8 +44,8 @@ impl Tag {
         }
     }
 
-    pub fn add_class<T: ToString>(mut self, value: T) -> Self {
-        self.classes.insert(value.to_string());
+    pub fn add_class<C: Into<Cow<'static, str>>>(mut self, value: C) -> Self {
+        self.classes.insert(value.into());
         self
     }
 
@@ -61,7 +61,7 @@ impl Tag {
         }
     }
 
-    pub fn maybe_add_class<T: ToString>(self, value: Option<T>) -> Self {
+    pub fn maybe_add_class<C: Into<Cow<'static, str>>>(self, value: Option<C>) -> Self {
         if let Some(value) = value {
             self.add_class(value)
         } else {
